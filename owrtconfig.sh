@@ -112,7 +112,7 @@ _ssh( )
 
 _telnet( )
 {
-	nc -i 1 -t "$IP" 23 2>&1
+	nc -i 1 -q -1 -t "$IP" 23 2>&1
 }
 
 if [ -n "$SUDO_FUNC" ]; then
