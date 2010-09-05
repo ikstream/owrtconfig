@@ -3,12 +3,15 @@ DESCRIPTION
 
 Owrtconfig is a script that configure multiple Openwrt routers all connected to
 the same switch.
-It has been used at the Wireless Battle Mesh second edition (WBMv2) in order to
+It is used at the Wireless Battle Mesh events  (http://battlemesh.org) in order to
 configure multiple foneras running Openwrt, and freshly flashed with the
-default firmware (all the foneras has the default IP 192.168.1.1).
-It changes the ARP cache to communicate with each router.
+default firmware (all default openwrt devices default IP 192.168.1.1).
+
 It loads a list of nodes (nodes.csv) and a list of commands to execute on each
-router (commands.sh), and it can also upload files.
+router (commands.sh), and it can also upload files (scp) by changing the ARP cache 
+to communicate with each router, one by one.
+
+
 
 DEPENDENCIES
 ============
@@ -16,19 +19,20 @@ DEPENDENCIES
 Please check that your system has the following commands (beware that
 stripped-down versions of those provided by busybox might not work):
 
-cat echo sudo arp ping ssh nc tail
+cat echo sudo arp ping ssh nc tail ssh
 
 TESTED ON
 =========
 
 Ubuntu Karmic (9.10)
+Ubuntu Maverick (10.10)
 
 USAGE
 =====
 
-./owrtconfig -telnet nodes.csv commands.sh
-./owrtconfig -ssh nodes.csv commands.sh
-./owrtconfig -scp nodes.csv commands.sh
+./owrtconfig -P telnet -H nodes.csv -C commands.sh
+./owrtconfig -P ssh -H nodes.csv -C commands.sh
+./scp-loop.sh -H nodes.csv file1 file2 .. 
 
 NODES.CSV
 =========
@@ -40,6 +44,7 @@ MAC,PARAM1,PARAM2,PARAM3,PARAM4,PARAM5,PARAM6,PARAM7,PARAM8,PARAM9
 where:
 
 * MAC: MAC address (ex: 00:18:84:29:b0:0c)
+other values depend on your config script -- these are recomended uses
 * PARAM1: hostname (ex: node01)
 * PARAM2: wired IP address (ex: 192.168.20.1)
 * PARAM3: wireless IP address (ex: 192.168.50.1)
@@ -59,10 +64,8 @@ http://telscom.ch/?p=217
 TODO
 ====
 
-* --Add a switch (-telnet -ssh -copy) instead of having near three identical scripts--
-* Add a switch for -scp
-* --Document the format of nodes.csv--
 * Make a check on dependencies
+* include a config script to initialize ssh on opwnert-devices
 * --Document howto generate ssh keys--
 
 AUTHORS
