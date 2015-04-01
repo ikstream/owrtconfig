@@ -67,6 +67,7 @@ TODO
 * Make a check on dependencies
 * include a config script to initialize ssh on opwnert-devices
 * --Document howto generate ssh keys--
+* Add support for first flash over stock firmware (i.e. with usage of `curl`)
 
 AUTHORS
 =======
