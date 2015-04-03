@@ -7,16 +7,25 @@
 #
 ############################################
 
-. $(pwd)/_helper_functions.sh
+__pwd="$( pwd )"
+__dirname="$( dirname ${0} )" 
+__basename="$( basename ${0} )"
+FULL_PATH="${__pwd}${__dirname#.}"
+
+. ${FULL_PATH}/_helper-functions.sh
+
+############################################
 
 _check_arguments "${1}" && _check_firmware_path "${1}" # sets ${firmware}
 
-# if ${model} does not exists we have had called this script directly, so we find out what we want to flash
+# if ${model} does not exists we have had called this script directly, so we 
+# have tofind out what we want to flash
 if [ ! ${model} ]; then
 	model=$(basename ${0}) 	# the name of this script
 	model=${model%.sh}		# strip file extention
 	_set_defaults_for_model
 fi
+
 ###################
 # TL-WR841ND-V8.0
 #####################

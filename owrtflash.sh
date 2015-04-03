@@ -7,16 +7,8 @@
 ME="owrtflash.sh"
 VER="0.02"
 
-_log() {
-	__type="${1}"
-	__msg="${2}"
-	echo "[${__type}] $(date "+%F %T") ${__msg}"
-}
+. ./_helper-functions.sh
 
-_error() {
-	echo "${ME}: $*"
-	exit 1
-}
 
 _usage() {
 	cat <<__END_OF_USAGE
@@ -95,23 +87,21 @@ fi
 
 #################################
 
-echo "** looping over nodes..."
 IFS_OLD="$IFS"
 IFS_NEW=","
 IFS="$IFS_NEW"
 
-FW_DIR="tmp/fw"
-
+_log "info" "looping over nodes..."
 # I did not found a proper way. `grep [] ${HOSTS_FILE} | while []` did not worked
 cat ${HOSTS_FILE} | grep -v '^#' | while read mac model firmware; 
 do
 	IFS="$IFS_OLD"
 	echo "-----"
-	_log "log" "New device: ${mac} (${model})"
+	_log "info" "next device in list: ${mac} (${model})"
 
 	
 	if [ ${FACTORY} ]; then
-		. flash-over-factory/_helper_functions.sh
+		. flash-over-factory/_helper-functions.sh
 		_set_defaults_for_model
 		_apply_network
 	fi
@@ -125,20 +115,20 @@ do
 	# was `ping` successfull?
 	if [ $? -eq 0 ]; then
 		
-		if [ -n ${FACTORY} ]; then
+		if [ ${FACTORY} ]; then
 			
-			_log "info" "start flasing '${model}' (${mac}) with '${firmware}'"
+			_log "log" "flasing '${model}' (${mac}) with '${firmware}'"
 			# TODO: If no firmwarefile is specified, get openwrt-*-generic-squashfs-factory.bin
 			./flash-over-factory/"${model}".sh "${firmware}"
 		
-		elif [ -n ${SYSUPGRADE} ]; then
+		elif [ ${SYSUPGRADE} ]; then
 
 			# TODO
 			:
 
 		else
 
-			_error "Either '--factory' or '--sysupgrade' was specified."
+			_error "neither '--factory' or '--sysupgrade' was specified."
 		fi
 
 	else
