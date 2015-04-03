@@ -24,14 +24,14 @@ ${ME} v${VAR}
 
 Usage: $ME OPTIONS -H HOSTS
 
-	-H HOSTS		file containing hosts list (hwaddr)
-	--factory		flashing for the first time (using curl)
-	--sysupgrade	flashing with sysupgrade (# TODO)
-	-v				be verbose
-
-	-s				use sudo
-	-h				display usage information
-	-V				display version information
+	-H HOSTS        file containing hosts list (hwaddr)
+	--factory       flashing for the first time (using curl)
+	--sysupgrade    flashing with sysupgrade (# TODO)
+	-v              be verbose
+    
+	-s              use sudo
+	-h              display usage information
+	-V              display version information
 	
 __END_OF_USAGE
 }
