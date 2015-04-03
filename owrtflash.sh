@@ -102,11 +102,12 @@ IFS="$IFS_NEW"
 
 FW_DIR="tmp/fw"
 
+# I did not found a proper way. `grep [] ${HOSTS_FILE} | while []` did not worked
 cat ${HOSTS_FILE} | grep -v '^#' | while read mac model firmware; 
 do
 	IFS="$IFS_OLD"
 	echo "-----"
-	echo "[log] $(date "+%F %T") New device: ${mac} (${model})"
+	_log "log" "New device: ${mac} (${model})"
 
 	
 	if [ ${FACTORY} ]; then
@@ -129,10 +130,19 @@ do
 			_log "info" "start flasing '${model}' (${mac}) with '${firmware}'"
 			# TODO: If no firmwarefile is specified, get openwrt-*-generic-squashfs-factory.bin
 			./flash-over-factory/"${model}".sh "${firmware}"
+		
+		elif [ -n ${SYSUPGRADE} ]; then
+
+			# TODO
+			:
 
 		else
-			_log "error" "${model} (${mac}) is not responsing."
+
+			_error "Either '--factory' or '--sysupgrade' was specified."
 		fi
+
+	else
+		_log "error" "${model} (${mac}) is not responsing."
 	fi
 
 	# clear arp entry
