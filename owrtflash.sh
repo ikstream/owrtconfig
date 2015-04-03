@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# owrtflash is used to flash openwrt sequentially on one or more router.
-# there are two main operations: factory2openwrt and openwrt2openwrt 
-# (maybe in the future a thier one openwrt2factory will be implemented)
+# ${0} is used to flash openwrt sequentially on one or more router(s).
+# There are two main operations modes: factory2openwrt and openwrt2openwrt 
+# (Maybe in the future a third mode --openwrt2factory-- will be implemented.)
 
 ME="owrtflash.sh"
 VER="0.02"
