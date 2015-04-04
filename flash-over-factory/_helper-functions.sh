@@ -10,15 +10,13 @@ _check_firmware_path() {
 }
 
 _reset_network() {
-#	$SUDO_FUNC ip link set eth0 down
-#	$SUDO_FUNC ip link set eth0 up
-	$SUDO_FUNC ip route flush table main > /dev/null
-	$SUDO_FUNC ip addr flush dev eth0 > /dev/null
+	$SUDO_FUNC ip route flush table main  >/dev/null 2>/dev/null
+	$SUDO_FUNC ip addr flush dev eth0     >/dev/null 2>/dev/null
 }
 
 _apply_network() {
 	_reset_network
-	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0 > /dev/null
+	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0  >/dev/null 2>/dev/null
 }
 
 
