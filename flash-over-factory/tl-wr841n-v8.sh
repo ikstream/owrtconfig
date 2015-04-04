@@ -10,16 +10,18 @@
 __pwd="$( pwd )"
 __dirname="$( dirname ${0} )" 
 __basename="$( basename ${0} )"
-FULL_PATH="${__pwd}${__dirname#.}"
 
-. ${FULL_PATH}/_helper-functions.sh
+. ${__dirname}/../_helper-functions.sh
+. ${__dirname}/_helper-functions.sh
+
+ME="${__basename}"
 
 ############################################
 
-_check_arguments "${1}" && _check_firmware_path "${1}" # sets ${firmware}
+_check_firmware_path "${1}" # sets ${firmware}
 
 # if ${model} does not exists we have had called this script directly, so we 
-# have tofind out what we want to flash
+# have to find out what we want to flash
 if [ ! ${model} ]; then
 	model=$(basename ${0}) 	# the name of this script
 	model=${model%.sh}		# strip file extention
@@ -40,4 +42,5 @@ curl \
 	"http://${router_ip}/incoming/Firmware.htm" \
 	> /dev/null \
 	2> /dev/null
+	#-o log-tl-wr841n-v8-flash.html
 

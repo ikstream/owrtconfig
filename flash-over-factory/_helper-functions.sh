@@ -1,15 +1,8 @@
 #!/bin/sh
 
-_check_arguments() {
-	if [ -z "${1}" ]; then
-		echo "[error] no arguments"
-		exit 1
-	fi
-}
-
 _check_firmware_path() {
 	if [ ! -f "${1}" ]; then
-		echo "[error] firmware not found"
+		_error "firmware not found"
 		exit 1
 	else
 		firmware="${1}"
@@ -21,13 +14,13 @@ USER_AGENT="Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:12.0) Gecko/20100101 Firefo
 _reset_network() {
 #	$SUDO_FUNC ip link set eth0 down
 #	$SUDO_FUNC ip link set eth0 up
-	$SUDO_FUNC ip route flush table main
-	$SUDO_FUNC ip addr flush dev eth0
+	$SUDO_FUNC ip route flush table main > /dev/null
+	$SUDO_FUNC ip addr flush dev eth0 > /dev/null
 }
 
 _apply_network() {
 	_reset_network
-	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0
+	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0 > /dev/null
 }
 
 
@@ -44,9 +37,10 @@ _set_defaults_for_model() {
 			#url="http://${router_ip}/incoming/Firmware.htm"
 		;;
 		tl-wr841*-v8)
-			#
+			::
 		;;
 		tl-wr842*-v1)
+			::
 			#
 		;;
 		*)
@@ -57,8 +51,3 @@ _set_defaults_for_model() {
 
 }
 
-###############################################################################
-
-#_check_arguments ${1}
-#model="${1}"
-#_set_defaults_for ${model}
