@@ -48,7 +48,7 @@ while [ -z ${keypress} ]; do
 		else
 			_log "warning" "${mac} is not reachable"
 		fi
-		$SUDO_FUNC arp -d $router_ip             >/dev/null 2>/dev/null
+		$SUDO_FUNC arp -d $router_ip  >/dev/null 2>/dev/null
 	done
 	keypress="$( cat -v )"
 	sleep 1
