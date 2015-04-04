@@ -45,6 +45,7 @@ curl \
  	2>/dev/null
 
 session_id=$(sed -n 's/var session_id = \"\(.*\)\".*/\1/p' ${SESSION_FILE})
+rm "${SESSION_FILE}"
 
 curl \
 	--user-agent "${user_agent}" \
@@ -56,7 +57,6 @@ curl \
 	>/dev/null \
 	2>/dev/null
 
-rm "${SESSION_FILE}"
 
 # Reference:
 #	http://wiki.openwrt.org/toh/tp-link/tl-mr3020
