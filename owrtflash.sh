@@ -94,9 +94,9 @@ fi
 
 #################################
 
-IFS_OLD="$IFS"
+IFS_OLD="${IFS}"
 IFS_NEW=","
-IFS="$IFS_NEW"
+IFS="${IFS_NEW}"
 
 __log "log" "${ME} - "
 $SUDO_FUNC /etc/init.d/network-manager stop
@@ -106,7 +106,7 @@ _log "info" "${ME} - looping over nodes (${HOSTS_FILE})..."
 # So do not blame me for the useless use of cat and send me a fix 8-)
 cat ${HOSTS_FILE} | grep -v '^#' | while read mac model firmware; 
 do
-	IFS="$IFS_OLD"
+	IFS="${IFS_OLD}"
 	_log "info" "${ME} - next device: '${model}' (${mac})"
 
 	
@@ -152,7 +152,7 @@ do
 
 	# clear arp entry
 	$SUDO_FUNC arp -d ${router_ip}  >/dev/null 2>/dev/null  # delets ip from arp-cache
-	IFS="$IFS_NEW"
+	IFS="${IFS_NEW}"
 done
 
 
@@ -161,7 +161,7 @@ $SUDO_FUNC /etc/init.d/network-manager start;
 _log "info" "${ME} - wait 7 seconds..."
 sleep 7
 
-IFS="$IFS_OLD"
+IFS="${IFS_OLD}"
 
 _log "info" "${ME} - exit"
 exit 0
