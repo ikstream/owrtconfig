@@ -2,7 +2,7 @@
 
 ## Usage
 
-### To flash over factory router freesh out of the box
+### To flash over factory router fresh out of the box
 
 ```
 ./owrtflash.sh -H factory-nodes.csv --factory -s
