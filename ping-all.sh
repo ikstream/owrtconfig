@@ -27,7 +27,7 @@ router_ip="192.168.0.1"
 __log "info" ""
 $SUDO_FUNC /etc/init.d/network-manager stop; sleep 2
 _reset_network
-$SUDO_FUNC ip addr add 192.168.0.2/24 dev eth0
+$SUDO_FUNC ip addr add 192.168.0.2/24 dev eth0 >/dev/null 2>/dev/null
 
 # while loop till key pressed got from http://stackoverflow.com/a/5297780
 if [ -t 0 ]; then
@@ -38,9 +38,9 @@ while [ -z ${keypress} ]; do
 	for mac in $(grep -v '^#' ${1} | cut -d ',' -f 1 | awk '{print $1}'); do
 		
 		{
-			$SUDO_FUNC ip -s -s neigh flush all > /dev/null
-			$SUDO_FUNC arp -s $router_ip $mac >/dev/null
-			ping -q -c 1 -W 1 $router_ip >/dev/null
+			$SUDO_FUNC ip -s -s neigh flush all  >/dev/null 2>/dev/null
+			$SUDO_FUNC arp -s $router_ip $mac    >/dev/null 2>/dev/null
+			ping -q -c 1 -W 1 $router_ip         >/dev/null 2>/dev/null
 		}
 
 		if [ ${?} -eq 0 ]; then
@@ -48,7 +48,7 @@ while [ -z ${keypress} ]; do
 		else
 			_log "warning" "${mac} is not reachable"
 		fi
-		$SUDO_FUNC arp -d $router_ip >/dev/null
+		$SUDO_FUNC arp -d $router_ip             >/dev/null 2>/dev/null
 	done
 	keypress="$( cat -v )"
 	sleep 1
