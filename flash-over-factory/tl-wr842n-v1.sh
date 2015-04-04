@@ -59,5 +59,5 @@ curl \
 
 
 # Reference:
-#	http://wiki.openwrt.org/toh/tp-link/tl-mr3020
+#	http://wiki.openwrt.org/toh/tp-link/tl-mr3020#oem_mass_flashing
 
