@@ -26,5 +26,5 @@ else
 	firmware="${2}"
 fi
 
-	_set_defaults_for_model
-	${__dirname}/${__basename%.sh}/${model}.sh ${firmware}
+_set_defaults_for_model
+${__dirname}/${__basename%.sh}/${model}.sh ${firmware}
