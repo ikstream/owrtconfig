@@ -118,8 +118,8 @@ do
 	{	
 		_log "info" "${mac} - testing network connection..."
 		# TEST NETWORK CONNECTION TO ROUTER
-		$SUDO_FUNC ip -s -s neigh flush all > /dev/null	2>/dev/null		# flushes neighbor arp-cache
-		$SUDO_FUNC arp -s ${router_ip} ${mac} > /dev/null 2>/dev/null	# sets new address for ip in arp-cache
+		$SUDO_FUNC ip -s -s neigh flush all > /dev/null	2>/dev/null     # flushes neighbor arp-cache
+		$SUDO_FUNC arp -s ${router_ip} ${mac} > /dev/null 2>/dev/null   # sets new address for ip in arp-cache
 		ping -c 1 -q -r -t 1 ${router_ip} > /dev/null 2>/dev/null
 	}
 
