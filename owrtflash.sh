@@ -151,7 +151,7 @@ do
 	fi
 
 	# clear arp entry
-	$SUDO_FUNC arp -d ${router_ip} > /dev/null 2>/dev/null
+	$SUDO_FUNC arp -d ${router_ip} > /dev/null 2>/dev/null              # delets ip from arp-cache
 	IFS="$IFS_NEW"
 done
 
