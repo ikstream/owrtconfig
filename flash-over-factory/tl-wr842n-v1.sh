@@ -41,8 +41,8 @@ curl \
 	--referer "http://${router_ip}/userRpm/SoftwareUpgradeRpm.htm" \
 	--form "Filename=@${firmware}" -F 'Upgrade=Upgrade' \
 	"http://${router_ip}/incoming/Firmware.htm" \
-	> ${SESSION_FILE}
- 	2> /dev/null
+	>${SESSION_FILE} \
+ 	2>/dev/null
 
 session_id=$(sed -n 's/var session_id = \"\(.*\)\".*/\1/p' ${SESSION_FILE})
 
@@ -53,8 +53,8 @@ curl \
 	--user ${user}:${password} \
 	--referer "http://${router_ip}/incoming/Firmware.htm" \
 	"http://${router_ip}/userRpm/FirmwareUpdateTemp.htm?session_id=${session_id}" \
-	> /dev/null \
-	2> /dev/null
+	>/dev/null \
+	2>/dev/null
 
 rm "${SESSION_FILE}"
 
