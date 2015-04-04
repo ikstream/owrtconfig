@@ -9,8 +9,6 @@ _check_firmware_path() {
 	fi
 }
 
-USER_AGENT="Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:12.0) Gecko/20100101 Firefox/12.0"
-
 _reset_network() {
 #	$SUDO_FUNC ip link set eth0 down
 #	$SUDO_FUNC ip link set eth0 up
@@ -26,11 +24,12 @@ _apply_network() {
 
 _set_defaults_for_model() {
 
+	user_agent="Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:12.0) Gecko/20100101 Firefox/12.0"
+
 	case "${model}" in
 		tl-wr84*)
 			router_ip="192.168.0.1"
 			client_ip="192.168.0.100"
-			user_agent="${USER_AGENT}"
 			user="admin"
 			password="admin"
 			#referer_url="http://${router_ip}/userRpm/SoftwareUpgradeRpm.htm"
