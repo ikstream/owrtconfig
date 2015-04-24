@@ -46,7 +46,6 @@ __log() {
 
 _error() {
 	echo "$( _date ) ${*}"
-	exit 1
 }
 
 
@@ -72,19 +71,23 @@ telnet"
 
 ########################################
 _usage() {
+	_set_ME
+	_set_VER
 	cat <<__END_OF_USAGE
-${ME} v${VAR}
+${ME} v${VER}
 
-Usage: $ME OPTIONS -H HOSTS
+Usage: $ME OPTIONS
 
-	--nodes NODES    comma seperated list of node-names
-	--state STATE    factory | openwrt
-	--verbose        be verbose # TODO
-	
-	--sudo           use sudo
-	--help           display usage information
-	--version        display version information
-	
+    --nodes NODES    comma seperated list of node-names,
+                     or a directory containing all node-files
+    --state STATE    factory | openwrt
+    --verbose        be verbose # TODO
+    
+    --sudo           use sudo
+    --nm             configure network-manager (means disable)
+    --help           display usage information
+    --version        display version information
+    
 __END_OF_USAGE
 }
 
@@ -104,19 +107,21 @@ _set_sudo_func()
 
 
 _reset_network() {
+	_flush_arp_cache
 	$SUDO_FUNC ip route flush table main dev eth0     >/dev/null 2>/dev/null
 	$SUDO_FUNC ip addr flush dev eth0                 >/dev/null 2>/dev/null
 }
 _set_client_ip() {
 	_reset_network
-	if [ $( cat /sys/class/net/eth0/operstate ) = "down" ]; then
+	# TODO ?!
+	if [ "$( cat /sys/class/net/eth0/operstate )" = "down" ]; then
 		$SUDO_FUNC ip link set eth0 up                >/dev/null 2>/dev/null
 	fi
 	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0   >/dev/null 2>/dev/null
 }
 
 _flush_arp_cache(){
-	$SUDO_FUNC ip -s -s neigh flush all dev eth0      >/dev/null 2>/dev/null  # flushes neighbor arp-cache
+	$SUDO_FUNC ip neighbour flush dev eth0            >/dev/null 2>/dev/null  # flushes all neighbors on link
 }
 _set_arp_entry() {
 	$SUDO_FUNC arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null  # sets new address for ip in arp-cache
@@ -259,12 +264,17 @@ _set_node() {
 ###########################
 ############### MAIN
 
+# Urgs, dirty, per default do not mess with NetworkManger
+# This imply eth0 is not configured by NM
+NETWORK_MANGER=0
+
 _parse_args() {
 
 	if [ -z "${1}" ]; then
 		:
-		#_error "[error] No arguemnts given."
-		#exit 0
+		_error "[error] No arguemnts given."
+		_usage
+		exit 1
 	fi
 
 	VERBOSITY_LEVEL=0
@@ -275,9 +285,24 @@ _parse_args() {
 				if [ -z "${1}" ]; then
 					_error "missing \`-n NODES\` argument"
 				else
-					NODES="${1}"
+					# Either is it comma seperated, or a directory
+					if [ ! -d "${1}" ]; then
+						# TODO: There has to be a better way, I feel ashamed
+						# Translate from comma seperated to shell list
+						NODES="$( echo ${1} | sed 's/,/ /g' )"
+					else
+						case ${1} in
+							*/)
+								NODES="${1}*"
+								;;
+							*)
+								NODES="${1}/*"
+								;;
+						esac
+					fi
 				fi
-			;;
+				;;
+			
 			--state)
 				shift
 				case ${1} in
@@ -291,32 +316,41 @@ _parse_args() {
 						_error "Unknown state '${1}'"
 						;;
 				esac
-			;;
+				;;
+			
 			-s|--sudo)
 				SUDO_FUNC="sudo"
 				_set_sudo_func
-			;;
+				;;
+			
+			--nm)
+				NETWORK_MANAGER=1
+				;;
+			
 			-v|--verbose) 
 				# TODO
 				VERBOSITY_LEVEL=$(( ${VERBOSITY_LEVEL} + 1 ))
-			;;
+				;;
+			
 			-h|--help)
-				_usage
-				exit 0
-			;;
+				_usage && exit 0
+				;;
+			
 			-V|--version)
-				_version
-				exit 0
-			;;
+				_version && exit 0
+				;;
+			
 			--download-openwrt)
+				# TODO
 				for __model in $( ls ${__basedir}/defaults/factory ); do
 					#
 					:
 				done
-			;;
+				;;
+			
 			*)
 				_error "unexpected argument '${1}'"
-			;;
+				;;
 		esac
 		shift
 	done
@@ -335,10 +369,11 @@ if [ ! -z "${1}" ]; then
 	
 	_check_requirements
 	
-	if [ $( pgrep --count "NetworkManager" ) -ge 1 ]; then
-		NetworkManager=1
-		__log "log" "${ME} - "
-		$SUDO_FUNC /etc/init.d/network-manager stop
+	if [ ${NETWORK_MANAGER} -eq 1 ]; then
+		if [ $( pgrep --count "NetworkManager" ) -ge 1 ]; then
+			__log "log" "${ME} - "
+			$SUDO_FUNC /etc/init.d/network-manager stop
+		fi
 	fi
 	
 	nodes_dir="${__dirname}/nodes"
@@ -383,6 +418,10 @@ if [ ! -z "${1}" ]; then
 				;;
 		esac
 		
+		_log "info" "${node} - Clear network foo" # TODO
+		_reset_network
+		_reset_arp_router_ip
+
 		_log "info" "${node} - Setting client IP to ${client_ip}"
 		_set_client_ip
 		_log "info" "Flushing arp table..."
@@ -442,18 +481,16 @@ if [ ! -z "${1}" ]; then
 			_log "log" "${ME} - Skipping '${node}'..."
 		fi
 		
-		_reset_network
-		_reset_arp_router_ip
 	
 	done
 	
 	_log "log" "${ME} - Finished."
 
-	if [ ${NetworkManager} ]; then
+	if [ ${NETWORK_MANAGER} -eq 1 ]; then
 		__log "log" "${ME} - "
 		$SUDO_FUNC /etc/init.d/network-manager start; 
-		_log "info" "${ME} - wait 7 seconds..."
-		sleep 7
+		# _log "info" "${ME} - wait 7 seconds..."
+		# sleep 7
 	fi
 	
 	_log "info" "${ME} - exit"
