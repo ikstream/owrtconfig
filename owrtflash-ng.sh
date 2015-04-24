@@ -105,33 +105,42 @@ _set_sudo_func()
 	fi
 }
 
+_flush_neigh(){
+	_log "info" "Flushing neighbour table..."
+	$SUDO_FUNC ip neighbour flush dev eth0            >/dev/null 2>/dev/null  # flushes all neighbors on link
+}
 
 _reset_network() {
-	_flush_arp_cache
+	_log "info" "Reset network" # TODO
+	_flush_neigh
 	$SUDO_FUNC ip route flush table main dev eth0     >/dev/null 2>/dev/null
 	$SUDO_FUNC ip addr flush dev eth0                 >/dev/null 2>/dev/null
 }
+
 _set_client_ip() {
 	_reset_network
-	# TODO ?!
-	if [ "$( cat /sys/class/net/eth0/operstate )" = "down" ]; then
+
+	# TODO ?! We do not need to detect state, because 'up' will not throw an error
+#	read IF_STATE < /sys/class/net/eth0/operstate
+#	if [ "${IF_STATE}" = "down" ]; then
 		$SUDO_FUNC ip link set eth0 up                >/dev/null 2>/dev/null
-	fi
+#	fi
+#	unset IF_STATE
+	_log "info" "Setting client IP to ${client_ip}"
 	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0   >/dev/null 2>/dev/null
 }
 
-_flush_arp_cache(){
-	$SUDO_FUNC ip neighbour flush dev eth0            >/dev/null 2>/dev/null  # flushes all neighbors on link
-}
 _set_arp_entry() {
+	_log "info" "Setting arp table entry for '${router_ip}' on '${macaddr}'"
 	$SUDO_FUNC arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null  # sets new address for ip in arp-cache
 }
 
-_reset_arp_router_ip() {
+_reset_arp_entry() {
 	$SUDO_FUNC arp -d ${router_ip}                    >/dev/null 2>/dev/null  # delets ip from arp-cache
 }
 
 _ping_router_ip() {
+	_log "info" "Testing network connection to ${macaddr}"
 	ping -c 1 -r -t 1 ${router_ip}                    >/dev/null 2>/dev/null
 }
 
@@ -392,6 +401,7 @@ if [ ! -z "${1}" ]; then
 			_error "Could not load '${node_file}'"
 		fi
 	
+		# Load node config
 		. "${nodes_dir}/${node_file}"
 		node="${node_file}"
 		
@@ -418,21 +428,13 @@ if [ ! -z "${1}" ]; then
 				;;
 		esac
 		
-		_log "info" "${node} - Clear network foo" # TODO
-		_reset_network
-		_reset_arp_router_ip
-
-		_log "info" "${node} - Setting client IP to ${client_ip}"
-		_set_client_ip
-		_log "info" "Flushing arp table..."
-		_flush_arp_cache
-		_log "info" "Setting arp table entry for '${router_ip}' on '${macaddr}'..."
-		_set_arp_entry
-		_log "info" "Testing network connection"
-		_ping_router_ip
-		
+		# Load node config again, ...
 		. "${nodes_dir}/${node_file}"
+
+		_set_client_ip
+		_set_arp_entry
 		
+		_ping_router_ip
 		if [ ${?} -eq 0 ]; then
 			_log "log" "${node} - Network status: OK"
 			
@@ -481,6 +483,7 @@ if [ ! -z "${1}" ]; then
 			_log "log" "${ME} - Skipping '${node}'..."
 		fi
 		
+		_reset_arp_entry
 	
 	done
 	
@@ -491,6 +494,8 @@ if [ ! -z "${1}" ]; then
 		$SUDO_FUNC /etc/init.d/network-manager start; 
 		# _log "info" "${ME} - wait 7 seconds..."
 		# sleep 7
+	else
+		_reset_network
 	fi
 	
 	_log "info" "${ME} - exit"
