@@ -3,18 +3,12 @@
 # ${1}	:	${model}
 # ${2}	:	${firmware}
 #
+############################################
 
-__pwd="$( pwd )"
-__dirname="$( dirname ${0} )" 
+__dirname="$( dirname ${0} )"
 __basename="$( basename ${0} )"
 
-. ${__dirname}/_helper-functions.sh
-. ${__dirname}/${__basename%.sh}/_helper-functions.sh
-
-ME="${__basename}"
-VER="0.01"
-
-############################################
+. ${__dirname}/owrtflash-ng.sh
 
 # If ${model} and ${firmware} are not given via argument 
 # and are not set something is wrong
@@ -26,5 +20,5 @@ else
 	firmware="${2}"
 fi
 
-_set_defaults_for_model
+
 ${__dirname}/${__basename%.sh}/${model}.sh ${firmware}
