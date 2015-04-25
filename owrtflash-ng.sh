@@ -87,6 +87,7 @@ Usage: $ME OPTIONS
     --nm             configure network-manager (means disable)
     --help           display usage information
     --version        display version information
+    --ping-test      just ping all nodes
     
 __END_OF_USAGE
 }
@@ -280,7 +281,6 @@ NETWORK_MANGER=0
 _parse_args() {
 
 	if [ -z "${1}" ]; then
-		:
 		_error "[error] No arguemnts given."
 		_usage
 		exit 1
@@ -356,6 +356,10 @@ _parse_args() {
 					:
 				done
 				;;
+
+			--ping-test)
+				OPT_PING_TEST=1
+				;;
 			
 			*)
 				_error "unexpected argument '${1}'"
@@ -371,134 +375,132 @@ _parse_args() {
 
 _parse_args ${*}
 
-if [ ! -z "${1}" ]; then
+_set_ME
+_set_VER
 	
-	_set_ME
-	_set_VER
-	
-	_check_requirements
-	
-	if [ ${NETWORK_MANAGER} -eq 1 ]; then
-		if [ $( pgrep --count "NetworkManager" ) -ge 1 ]; then
-			__log "log" "${ME} - "
-			$SUDO_FUNC /etc/init.d/network-manager stop
-		fi
-	fi
-	
-	nodes_dir="${__dirname}/nodes"
-	
-	if [ -z ${NODES} ]; then
-		NODES="$( ls ${nodes_dir} )"
-		_log "info" "${ME} - Start looping over nodes in '${nodes_dir}'..."
-	else
-		_log "info" "${ME} - Start looping over '${NODES}'..."
-	fi
-	
-	
-	for node_file in ${NODES}; do
-	
-		if [ ! -f "${nodes_dir}/${node_file}" ]; then
-			_error "Could not load '${node_file}'"
-		fi
-	
-		# Load node config
-		. "${nodes_dir}/${node_file}"
-		node="${node_file}"
-		
-		_log "log" "${ME} - Next device in list: '${node}' - '${model}' - '${macaddr}'"
-		
-		# TODO
-		# _get_state
-		
-		_set_generic_defaults
-		_set_model_defaults
-		
-		case ${state} in 
-			factory)
-				_set_factory_defaults
-				;;
-			openwrt)
-				_set_openwrt_defaults
-				;;
-			"")
-				_get_state || _error "No state was given and autodetect failed."
-				;;
-			*)
-				_get_state || _error "Your state ('${state}') is unknown, and autodetect failed, too."
-				;;
-		esac
-		
-		# Load node config again, ...
-		. "${nodes_dir}/${node_file}"
+_check_requirements
 
-		_set_client_ip
-		_set_arp_entry
-		
-		_ping_router_ip
-		if [ ${?} -eq 0 ]; then
-			_log "log" "${node} - Network status: OK"
-			
-			case ${state} in
-				factory)
-					
-					if [ -z ${firmware} ]; then
-						_download_openwrt
-					fi
-					
-					_log "info" "${node} - Flashing with '${firmware}'..."
-						. ${__basedir}/flash-over-factory/${model}.sh  # TODO
-					_flash_over_factory                                # TODO
-				;;
-	
-				openwrt)
-					# TODO
-					case ${protocol} in 
-						telnet)
-							# TODO
-							nc -l 1234 < ${firmware}
-							{ 
-								nc ${client_ip} 1234 > /tmp/fw
-								sleep 1
-								sysupgrade -n /tmp/fw
-							} \
-							  | telnet ${router_ip}
-						;;
-						ssh)
-							# TODO
-							scp ${firmware} ${user}@${router_ip}:/tmp/fw
-							ssh ${user}@${router_ip} "nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
-						;;
-					esac
-					
-				;;
-	
-				*)
-					_error "Unknown state."
-				;;
-			esac
-	
-		else
-			_log "error" "${node} is not responsing."
-			_log "log" "${node} - Network status: FAILED"
-			_log "log" "${ME} - Skipping '${node}'..."
-		fi
-		
-		_reset_arp_entry
-	
-	done
-	
-	_log "log" "${ME} - Finished."
-
-	if [ ${NETWORK_MANAGER} -eq 1 ]; then
+if [ ${NETWORK_MANAGER} -eq 1 ]; then
+	if [ $( pgrep --count "NetworkManager" ) -ge 1 ]; then
 		__log "log" "${ME} - "
-		$SUDO_FUNC /etc/init.d/network-manager start; 
-		# _log "info" "${ME} - wait 7 seconds..."
-		# sleep 7
+		$SUDO_FUNC /etc/init.d/network-manager stop
+	fi
+fi
+
+nodes_dir="${__dirname}/nodes"
+
+if [ -z ${NODES} ]; then
+	NODES="$( ls ${nodes_dir} )"
+	_log "info" "${ME} - Start looping over nodes in '${nodes_dir}'..."
+else
+	_log "info" "${ME} - Start looping over '${NODES}'..."
+fi
+
+# Loop over nodes
+for node_file in ${NODES}; do
+
+	if [ ! -f "${nodes_dir}/${node_file}" ]; then
+		_error "Could not load '${node_file}'"
+	fi
+
+	# Load node config
+	. "${nodes_dir}/${node_file}"
+	node="${node_file}"
+	
+	_log "log" "${ME} - Next device in list: '${node}' - '${model}' - '${macaddr}'"
+	
+	# _get_state # TODO
+	
+	_set_generic_defaults
+	_set_model_defaults
+	
+	case ${state} in 
+		factory)
+			_set_factory_defaults
+			;;
+		openwrt)
+			_set_openwrt_defaults
+			;;
+		"")
+			_get_state || _error "No state was given and autodetect failed."
+			;;
+		*)
+			_get_state || _error "Your state ('${state}') is unknown, and autodetect failed, too."
+			;;
+	esac
+	
+	# Load node config again, ...
+	. "${nodes_dir}/${node_file}"
+
+	_set_client_ip
+	_set_arp_entry
+	
+	_ping_router_ip
+	if [ ${?} -eq 0 ]; then
+		_log "log" "${node} - Network status: OK"
+		
+		case ${state} in
+			factory)
+				
+				if [ -z ${firmware} ]; then
+					_download_openwrt
+				fi
+				
+				_log "info" "${node} - Flashing with '${firmware}'..."
+					. ${__basedir}/flash-over-factory/${model}.sh  # TODO
+				_flash_over_factory                                # TODO
+			;;
+
+			openwrt)
+				# TODO
+				case ${protocol} in 
+					telnet)
+						# TODO
+						nc -l 1234 < ${firmware}
+						{ 
+							nc ${client_ip} 1234 > /tmp/fw
+							sleep 1
+							sysupgrade -n /tmp/fw
+						} \
+						  | telnet ${router_ip}
+					;;
+					ssh)
+						# TODO
+						scp ${firmware} ${user}@${router_ip}:/tmp/fw
+						ssh ${user}@${router_ip} "nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
+					;;
+				esac
+				
+			;;
+
+			*)
+				_error "Unknown state."
+			;;
+		esac
+
 	else
-		_reset_network
+		_log "error" "${node} is not responsing."
+		_log "log" "${node} - Network status: FAILED"
+		_log "log" "${ME} - Skipping '${node}'..."
 	fi
 	
-	_log "info" "${ME} - exit"
-	exit 0
+	_reset_arp_entry
+
+done
+_log "log" "${ME} - Finished."
+
+
+# Clean up
+if [ ${NETWORK_MANAGER} -eq 1 ]; then
+	__log "log" "${ME} - "
+	$SUDO_FUNC /etc/init.d/network-manager start; 
+	# _log "info" "${ME} - wait 7 seconds..."
+	# sleep 7
+else
+	_reset_network
 fi
+
+_log "info" "${ME} - exit"
+
+exit 0
 
