@@ -1,0 +1,6 @@
+
+# TL-WR841 defaults
+
+. ${__basedir}/defaults/models/tl-wr841
+. ${__basedir}/defaults/factory/tl
+

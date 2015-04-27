@@ -28,10 +28,15 @@ _set_VER() {
 	VER="2.00"
 }
 
-#######################
+
+#####################
+## HELPER FUNCTION ##
+#####################
+
 _date() {
 	echo -n "$( date "+%F %T")"
 }
+########
 
 _log() {
 	# ${1} 	: type [log|info|error]
@@ -39,19 +44,21 @@ _log() {
 
 	echo "$( _date ) [${1}] ${2}"
 }
+#######
 
 __log() {
 	echo -n "$( _date ) [${1}] ${2}"
 }
+#######
 
 _error() {
-	echo "$( _date ) ${*}"
+	echo "[error] $( _date ) ${1}"
 }
-
+#######
 
 _check_requirements() {
 
-CMD="arp
+	CMD="arp
 cat
 curl
 grep
@@ -68,48 +75,28 @@ telnet"
 	done
 
 }
-
-########################################
-_usage() {
-	_set_ME
-	_set_VER
-	cat <<__END_OF_USAGE
-${ME} v${VER}
-
-Usage: $ME OPTIONS
-
-    --nodes NODES    comma seperated list of node-names,
-                     or a directory containing all node-files
-    --state STATE    factory | openwrt
-    --verbose        be verbose # TODO
-    
-    --sudo           use sudo
-    --nm             configure network-manager (means disable)
-    --help           display usage information
-    --version        display version information
-    --ping-test      just ping all nodes
-    
-__END_OF_USAGE
-}
-
-_version() {
-	cat <<__END_OF_VERSION
-${ME} v${VER}
-__END_OF_VERSION
-}
+#######
 
 _set_sudo_func()
 {
 	if [ -n "$SUDO_FUNC" ]; then
-		_log "info" "${ME} - Check \`sudo\`"
-		$SUDO_FUNC true || _error "no \`sudo\` available"
+		_log "info" "${ME} - Check for \`sudo\`"
+		$SUDO_FUNC true || _error "\`sudo\` not available."
 	fi
 }
+
+#######
+
+
+##############################
+## NETWORK HELPER FUNCTIONS ##
+##############################
 
 _flush_neigh(){
 	_log "info" "Flush neighbour table"
 	$SUDO_FUNC ip neighbour flush dev eth0            >/dev/null 2>/dev/null  # flushes all neighbors on link
 }
+#######
 
 _reset_network() {
 	_log "info" "Reset network" # TODO
@@ -117,30 +104,38 @@ _reset_network() {
 	$SUDO_FUNC ip route flush table main dev eth0     >/dev/null 2>/dev/null
 	$SUDO_FUNC ip addr flush dev eth0                 >/dev/null 2>/dev/null
 }
+#######
 
 _set_client_ip() {
 	_reset_network
 
 	_log "info" "${node}: Setting client IP to ${client_ip}"
-	$SUDO_FUNC ip link set eth0 up                >/dev/null 2>/dev/null
+	$SUDO_FUNC ip link set eth0 up                    >/dev/null 2>/dev/null
 	$SUDO_FUNC ip addr add ${client_ip}/24 dev eth0   >/dev/null 2>/dev/null
 }
+#######
 
 _set_arp_entry() {
 	_log "info" "${node}: Setting arp table entry for '${router_ip}' on '${macaddr}'"
 	$SUDO_FUNC arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null  # sets new address for ip in arp-cache
 }
+#######
 
 _reset_arp_entry() {
 	$SUDO_FUNC arp -d ${router_ip}                    >/dev/null 2>/dev/null  # delets ip from arp-cache
 }
+#######
 
 _ping_router_ip() {
 	_log "info" "${node}: Testing network connection to ${macaddr}"
 	ping -c 1 -r -t 1 ${router_ip}                    >/dev/null 2>/dev/null
 }
+#######
 
-########################################
+
+###################################
+## SET DEFAULTS HELPER FUNCTIONS ##
+###################################
 
 _get_state() {
 	# TODO
@@ -161,7 +156,7 @@ _get_state() {
 	false
 
 }
-
+#######
 
 _set_generic_defaults() {
 	. "${__basedir}/defaults/generic"
@@ -183,7 +178,7 @@ _set_factory_defaults() {
 		. "${__basedir}/defaults/factory/${model}"
 		_log "info" "${node}: Load factory defaults for '${model}'."
 	else
-		_error "error" "${node}: No factory defaults for '${model}' found."
+		_error "${node}: No factory defaults for '${model}' found."
 	fi
 	
 }
@@ -206,36 +201,25 @@ _get_openwrt_firmware_file_md5sum() {
 
 }
 
-_download_openwrt() {
-	# TODO
-
-	# get firmware_file_name
+_download_openwrt() {		# TODO
 	firmware_file_name="$( _get_openwrt_firmware_file_name )"
-
-	# cleanup file name
-	firmware_file_name="${firmware_file_name#"*"}"
+	firmware_file_name="${firmware_file_name#"*"}"		# Cleanup file name
 	
-	
-	if [ ! -e "${firmware_dir}/${firmware_file_name}" ]; then
-		
+	if [ ! -e "${FIRMWARE_DIR}/${firmware_file_name}" ]; then
 		firmware_file_url="https://downloads.openwrt.org/${OPENWRT_RELEASE_NAME}/${OPENWRT_RELEASE_DATE}/${chipset}/generic/${firmware_file_name}"
 		curl \
 			--insecure \
 			--silent \
-			--output ${firmware_dir}/${firmware_file_name} \
+			--output ${FIRMWARE_DIR}/${firmware_file_name} \
 			"${firmware_file_url}"
 	fi
-
-	firmware="${{firmware_dir}/${firmware_file_name}"
-
+	firmware="${{FIRMWARE_DIR}/${firmware_file_name}"
 }
+#######
 
 _set_openwrt_defaults() {
-
 	. "${__basedir}/defaults/openwrt/generic"
-
-	# TODO
-	OPENWRT_RELEASE_NAME="barrier_breaker"
+	OPENWRT_RELEASE_NAME="barrier_breaker"		# TODO
 	case ${OPENWRT_RELEASE_NAME} in
 		a*_a*)
 			OPENWRT_RELEASE_DATE="12.07"
@@ -251,34 +235,55 @@ _set_openwrt_defaults() {
 	if [ -z ${firmware} ]; then
 		_download_openwrt
 	fi
-
 }
 
 
 ########################################
 
-_set_node() {
-	# TODO
+_set_node() {		# TODO
 	# serial_number
 	:
 }
 
 
-########################################
-##################################
-###########################
-############### MAIN
+###################
+## MAIN FUNCTION ##
+###################
 
-# Urgs, dirty, per default do not mess with NetworkManger
-# This imply eth0 is not configured by NM
-NETWORK_MANGER=0
+_version() {
+	cat <<__END_OF_VERSION
+${ME} v${VER}
+__END_OF_VERSION
+}
+#######
 
+_usage() {
+	_set_ME
+	_set_VER
+	cat <<__END_OF_USAGE
+${ME} v${VER}
 
+Usage: $ME OPTIONS
+
+    --nodes NODES    comma seperated list of node-names,
+                     or a directory containing all node-files
+    --state STATE    factory | openwrt
+    --verbose        be verbose # TODO
+    
+    --sudo           use sudo
+    --nm             configure network-manager (means disable)
+    --help           display usage information
+    --version        display version information
+    --ping-test      just ping all nodes
+    
+__END_OF_USAGE
+}
+#######
 
 _parse_args() {
 
 	if [ -z "${1}" ]; then
-		_error "[error] No arguemnts given."
+		_error "No arguemnts given."
 		_usage
 		exit 1
 	fi
@@ -286,23 +291,29 @@ _parse_args() {
 	VERBOSITY_LEVEL=0
 	while [ -n "${1}" ]; do
 		case ${1} in
+			-h|--help)
+				_usage && exit 0
+				;;
+			
+			-V|--version)
+				_version && exit 0
+				;;
+
 			-n|--nodes)
 				shift
 				if [ -z "${1}" ]; then
-					_error "missing \`-n NODES\` argument"
+					_error "\`--nodes\` requires an argument."
 				else
-					# Either is it comma seperated, or a directory
+					# If it is not a directory, it is a comma seperated list
 					if [ ! -d "${1}" ]; then
-						# TODO: There has to be a better way, I feel ashamed
-						# Translate from comma seperated to shell list
-						NODES="$( echo ${1} | sed 's/,/ /g' )"
+						OPT_NODES="$( echo ${1} | sed 's/,/ /g' )" 	# Translate to shell list
 					else
 						case ${1} in
 							*/)
-								NODES="${1}*"
+								OPT_NODES="${1}*"
 								;;
 							*)
-								NODES="${1}/*"
+								OPT_NODES="${1}/*"
 								;;
 						esac
 					fi
@@ -333,23 +344,13 @@ _parse_args() {
 				NETWORK_MANAGER=1
 				;;
 			
-			-v|--verbose) 
-				# TODO
+			-v|--verbose) 	# TODO
 				VERBOSITY_LEVEL=$(( ${VERBOSITY_LEVEL} + 1 ))
 				;;
 			
-			-h|--help)
-				_usage && exit 0
-				;;
 			
-			-V|--version)
-				_version && exit 0
-				;;
-			
-			--download-openwrt)
-				# TODO
+			--download-openwrt)		# TODO
 				for __model in $( ls ${__basedir}/defaults/factory ); do
-					#
 					:
 				done
 				;;
@@ -359,138 +360,122 @@ _parse_args() {
 				;;
 			
 			*)
-				_error "unexpected argument '${1}'"
+				_error "Unexpected argument '${1}'"
 				;;
 		esac
 		shift
 	done
-
 }
 
-########################################
-####################
+##########
+## MAIN ##
+##########
+
+# DEFAULT SETTINGS
+NETWORK_MANGER=0
+FIRMWARE_DIR="${__basedir}/firmware-images"
 
 _set_ME
 _set_VER
 
 _parse_args ${*}
-	
 _check_requirements
 
 if [ "${NETWORK_MANAGER}" = "1" ]; then
-	if [ $( pgrep --count "NetworkManager" ) -ge 1 ]; then
-		__log "log" "${ME} - "
-		$SUDO_FUNC /etc/init.d/network-manager stop
-	fi
+	__log "log" "${ME} - "
+	$SUDO_FUNC /etc/init.d/network-manager stop
 fi
 
-nodes_dir="${__dirname}/nodes"
-
-if [ -z "${NODES}" ]; then
-	NODES="$( ls ${nodes_dir} )"
-	_log "info" "${ME} - Start looping over nodes in '${nodes_dir}'..."
+if [ -z "${OPT_NODES}" ]; then
+	NODES_DIR="${__dirname}/nodes"
+	OPT_NODES="$( ls ${NODES_DIR} )"
+	_log "info" "${ME} - Start looping over nodes in '${NODES_DIR}'..."
 else
-	_log "info" "${ME} - Start looping over '${NODES}'..."
+	_log "info" "${ME} - Start looping over '${OPT_NODES}'..."
 fi
 
 # Loop over nodes
-for node_file in ${NODES}; do
+for node_file in ${OPT_NODES}; do
 
-	if [ ! -f "${nodes_dir}/${node_file}" ]; then
-		_error "Could not load '${node_file}'"
-	fi
-
-	# Load node config
-	. "${nodes_dir}/${node_file}"
 	node="${node_file}"
 	
-	_log "log" "*** Next device in list: '${node}' - '${model}' - '${macaddr}' ***"
-	
-	# _get_state # TODO
-	
-	_set_generic_defaults
-	_set_model_defaults
-	
-	case ${state} in 
-		factory)
-			_set_factory_defaults
-			;;
-		openwrt)
-			_set_openwrt_defaults
-			;;
-		"")
-			:
-			#_get_state || _error "No state was given and autodetect failed."
-			;;
-		*)
-			:
-			#_get_state || _error "Your state ('${state}') is unknown, and autodetect failed, too."
-			;;
-	esac
-	
-	# Load node config again, ...
-	. "${nodes_dir}/${node_file}"
+	if [ ! -f "${NODES_DIR}/${node_file}" ]; then
+		_error "${node}: Could not load config '${node_file}'"
+		_log "log" "${node}: Skipping node"
 
-	_set_client_ip
-	_set_arp_entry
-	
-	_ping_router_ip
-	case ${?} in
-		0)
-			_log "log" "${node}: Network status OK"
-
-			if [ ! ${OPT_PING_TEST} ]; then
-
-				firmware_dir="${__basedir}/firmware-images"
-				case ${state} in
-					factory)
-						
-						if [ -z ${firmware} ]; then
-							_download_openwrt
-						fi
-						
-						_log "info" "${node} - Flashing with '${firmware}'..."
-							. ${__basedir}/flash-over-factory/${model}.sh  # TODO
-						_flash_over_factory                                # TODO
-						;;
-				
-					openwrt)
-						# TODO
-						case ${protocol} in 
-							telnet)
-								# TODO
-								nc -l 1234 < ${firmware}
-								{ 
-									nc ${client_ip} 1234 > /tmp/fw
-									sleep 1
-									sysupgrade -n /tmp/fw
-								} \
-								  | telnet ${router_ip}
-							;;
-							ssh)
-								# TODO
-								scp ${firmware} ${user}@${router_ip}:/tmp/fw
-								ssh ${user}@${router_ip} "nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
-							;;
-						esac
-						;;
-				
-					*)
-						_error "Unknown state."
-						;;
-
-					esac
-				fi
-			;;
+	else
+		_log "log" "*** Next device in list: '${node}' - '${model}' - '${macaddr}' ***"
+		. "${NODES_DIR}/${node_file}"		# Load node config
 		
-		*)
-			_log "error" "${node} is not responsing."
-			_log "log" "${node}: Network status: FAILED"
-			_log "log" "Skipping '${node}'..."
-			;;
-	esac
+		# _get_state # TODO
+		_set_generic_defaults
+		_set_model_defaults
 		
-	_reset_arp_entry
+		case ${state} in 
+			factory)
+				_set_factory_defaults
+				;;
+			openwrt)
+				_set_openwrt_defaults
+				;;
+		esac
+		
+		. "${NODES_DIR}/${node_file}"		# Load node config, again ...
+	
+		_set_client_ip
+		_set_arp_entry
+		
+		_ping_router_ip
+		case ${?} in
+			0)
+				_log "log" "${node}: Network status: OK"
+	
+				if [ ! ${OPT_PING_TEST} ]; then
+	
+					case ${state} in
+						factory)
+							
+							if [ -z ${firmware} ]; then
+								_download_openwrt		# TODO
+							fi
+							
+							_log "info" "${node} - Flashing with '${firmware}'..."
+								. ${__basedir}/flash-over-factory/${model}.sh  # TODO # but works atm
+							_flash_over_factory                                # TODO # but works atm
+							;;
+					
+						openwrt)
+							# TODO
+							case ${protocol} in 
+								telnet)
+									# TODO
+									nc -l 1234 < ${firmware}
+									{ 
+										nc ${client_ip} 1234 > /tmp/fw
+										sleep 1
+										sysupgrade -n /tmp/fw
+									} \
+									  | telnet ${router_ip}
+								;;
+								ssh)
+									# TODO
+									scp ${firmware} ${user}@${router_ip}:/tmp/fw
+									ssh ${user}@${router_ip} "nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
+								;;
+							esac # END of PROTOCOL
+							;;
+						esac # END of STATE
+					fi # END of OPT_PING_TEST
+				;;
+			
+			*)
+				_log "error" "${node}: Network status: FAILED - Not responsing."
+				_log "log" "$node}: Skipping node"
+				;;
+		esac	# END of _ping_router_ip
+			
+		_reset_arp_entry
+	fi
 
 done
 _log "log" "${ME} - Finished."
