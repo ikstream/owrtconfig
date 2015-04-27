@@ -6,16 +6,21 @@
 
 _flash_over_factory() {
 
+	fw="${firmware_dir}/${firmware}"
+	if [ ! -e "${fw}" ]; then
+		_log "error" "Firmware '${fw}' not found!"
+		exit 1
+	fi
+
+	#	-o "${__basedir}/log-${node}.html" \
 	curl \
 		--silent \
 		--user-agent "${user_agent}" \
 		--user "${user}":"${password}" \
 		--include \
 		--referer "http://${router_ip}/userRpm/SoftwareUpgradeRpm.htm" \
-		--form upload=@"${firmware_dir}/${firmware}" \
+		--form "Filename=@${fw}" -F "Upgrade=Upgrade" \
 		"http://${router_ip}/incoming/Firmware.htm" \
-		> /dev/null \
-		2> /dev/null
-		#-o log-tl-wr841n-v8-flash.html
+		> /dev/null 2> /dev/null
 }
 
