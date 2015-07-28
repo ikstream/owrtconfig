@@ -11,7 +11,7 @@ _set_ME() {
 }
 
 _set_VER() {
-	VER="2.00"
+	VER="2.1.0"
 }
 
 
@@ -62,6 +62,7 @@ ip
 ping
 pgrep
 ssh
+sshpass
 telnet"
 
 	for cmd in ${CMDS}; do
@@ -327,6 +328,9 @@ _parse_args() {
 					openwrt)
 						state="openwrt"
 					;;
+					openwrt-custom|openwrt-customized)
+						state="openwrt-custom"
+					;;
 					*)
 						_error "Unknown state '${1}'"
 					;;
@@ -420,10 +424,16 @@ main() {
 			case "${state}" in
 				factory)
 					_set_factory_defaults
-					;;
+				;;
+
 				openwrt)
 					_set_openwrt_defaults
-					;;
+				;;
+
+				openwrt-custom)
+					:
+					# Do nothing, in the next step we load our config again
+				;;
 			esac
 
 			# Load node config, again ...
@@ -444,12 +454,12 @@ main() {
 
 								if [ -z ${firmware} ];
 								then
-									_download_openwrt		# TODO
+									_download_openwrt                             # TODO
 								fi
 
 								_log "info" "${node} - Flashing with '${firmware}'..."
-								. ${__basedir}/flash-over-factory/${model}.sh   # TODO # but works atm
-								_flash_over_factory                             # TODO # but works atm
+								. "${__basedir}/flash-over-factory/${model}.sh"   # TODO # but works atm
+								_flash_over_factory                               # TODO # but works atm
 							;;
 
 							openwrt)
@@ -458,19 +468,61 @@ main() {
 									telnet)
 										# TODO
 										nc -l 1234 < ${firmware}
-										{
-											nc ${client_ip} 1234 > /tmp/fw
-											sleep 1
-											sysupgrade -n /tmp/fw
-										} \
-										  | telnet ${router_ip}
+
+										# Use seperate `expect` script
+
+										#!/usr/bin/expect
+										#
+										#spawn telnet 192.168.1.1
+										#expect "'^]'." sleep .1;
+										#send "\r";
+										#expect "#"
+										#
+										##send "echo 'hello'\r"
+										#send "nc ${client_ip} 1234 > /tmp/fw\r"
+										#expect "#"
+										#
+										## TODO: nohup...
+										#send "sysupgrade -n /tmp/fw\r"
+										#expect "#"
+										#
+										##send "exit\r"
+										##expect eof
+
+										#${__basedir}/flash-over-openwrt-via-telnet.exp
+
 									;;
 									ssh)
-										# TODO
-										scp ${firmware} ${user}@${router_ip}:/tmp/fw
-										ssh ${user}@${router_ip} "nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
+										{
+# TODO
+#scp ${firmware} ${user}@${router_ip}:/tmp/fw
+sshpass -p "${password}" \
+	scp \
+		-o StrictHostKeyChecking=no \
+		${firmware} \
+		${user}@${router_ip}:/tmp/fw
+
+sshpass -p "${password}" \
+	scp \
+		-o StrictHostKeyChecking=no \
+		${nohup_func} \
+		${user}@${router_ip}:/tmp/nohup.sh
+
+sshpass -p "${password}" \
+	ssh \
+		-o StrictHostKeyChecking=no \
+		${user}@${router_ip} \
+		sh /tmp/nohup.sh sysupgrade -n /tmp/fw
+#		"nohup sysupgrade -n /tmp/fw > /dev/null 2> /dev/null < /dev/null &"
+		# FIXME: There is no `nohup` on vanillia openwrt!
+		# See `nohup` func
+										}
 									;;
 								esac # END of PROTOCOL
+							;;
+
+							openwrt-custom)
+								:
 							;;
 
 							*)
@@ -515,3 +567,40 @@ main
 #	tftp-server for model tl-wr841n-v9, tl-wdr4300v1
 #		use dnsmasq and static ip configuration
 #
+
+# WORKING ON
+## 2.1.0
+# * New state
+#	- openwrt-custom / openwrt-customized
+
+nohup(){
+	# Close stdin, and make any read attempt an error
+	    if [ -t 0 ]
+	    then
+	        exec 0>/dev/null
+	    fi
+
+	# Redirect stdout to a file if it's a TTY
+	    if [ -t 1 ]
+	    then
+	        exec 1>nohup.out
+	        if [ $? -ne 0 ]
+	        then
+	            exec 1>nohup.out
+	        fi
+	    fi
+
+	# Redirect stderr to stdout if it's a TTY
+	    if [ -t 2 ]
+	    then
+	        exec 2>&1
+	    fi
+
+	# Trap the HUP signal to ignore it
+	    trap : HUP
+}
+
+# Usage:
+# nohup() {}
+# nohup
+# sysupgrade -n /tmp/fw
