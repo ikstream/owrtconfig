@@ -12,7 +12,6 @@ _flash_over_factory() {
 		exit 1
 	fi
 
-	#	-o "${__basedir}/log-${node}.html" \
 	curl \
 		--silent \
 		--user-agent "${user_agent}" \
@@ -22,5 +21,6 @@ _flash_over_factory() {
 		--form "Filename=@${fw}" -F "Upgrade=Upgrade" \
 		"http://${router_ip}/incoming/Firmware.htm" \
 		> /dev/null 2> /dev/null
+	#	-o "${__basedir}/log-${node}.html"
 }
 
