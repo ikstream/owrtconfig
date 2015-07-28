@@ -1,24 +1,11 @@
 #!/bin/sh
-#set -x
+set -x
 
-#
-# TODO
-# * Give 'nodes' instat of 'hosts' file as agument
-#
-# * if ipaddr and/or other variable are set in the node state is custom
-#		then the first atempt are to ping ip via routing table
-#	otherwise state have to be factory or openwrt or have to detect via auto detect.
-#
-#
-# Feature request
-#	tftp-server for model tl-wr841n-v9, tl-wdr4300v1
-#		use dnsmasq and static ip configuration
-#
-
-__dirname="$( dirname $( readlink -f "${0}" ) )"
+# unix shell script find out which directory the script file resides?
+# https://stackoverflow.com/a/1638397
+__dirname= "$( dirname $( readlink -f "${0}" ) )"
 __basename="$( basename ${0} )"
-
-__basedir="${__dirname}"
+__basedir= "${__dirname}"
 
 _set_ME() {
 	ME="${__basename}"
@@ -41,7 +28,6 @@ _date() {
 _log() {
 	# ${1} 	: type [log|info|error]
 	# ${2}	: message
-
 	echo "$( _date ) [${1}] ${2}"
 }
 #######
@@ -57,7 +43,6 @@ _error() {
 #######
 
 _check_requirements() {
-
 	CMD="arp
 cat
 curl
@@ -73,18 +58,15 @@ telnet"
 			_error "'${cmd}' is not installed or available."
 		fi
 	done
-
 }
 #######
 
-_set_sudo_func()
-{
+_set_sudo_func() {
 	if [ -n "$SUDO_FUNC" ]; then
 		_log "info" "${ME} - Check for \`sudo\`"
 		$SUDO_FUNC true || _error "\`sudo\` not available."
 	fi
 }
-
 #######
 
 
@@ -92,7 +74,7 @@ _set_sudo_func()
 ## NETWORK HELPER FUNCTIONS ##
 ##############################
 
-_flush_neigh(){
+_flush_neigh() {
 	_log "info" "Flush neighbour table"
 	$SUDO_FUNC ip neighbour flush dev eth0            >/dev/null 2>/dev/null  # flushes all neighbors on link
 }
@@ -145,7 +127,7 @@ _get_state() {
 	LEASE_FILE="/var/lib/dhcp/dhclient.leases"
 
 	$SUDO_FUNC rm -f "${LEASE_FILE}"
-	
+
 	$SUDO_FUNC dhclient -v eth0
 
 	router_ip=$( grep 'option routers' "${LEASE_FILE}" | awk '{print $3}' | sed 's/;//' )
@@ -154,7 +136,6 @@ _get_state() {
 	nmap -A -T5 -n --open -p1-1024 -sV -oG - "${router_ip}"
 
 	false
-
 }
 #######
 
@@ -167,20 +148,12 @@ _set_model_defaults() {
 }
 
 _set_factory_defaults() {
-
-	protocol="http"
-	
-	# TODO
-	# Instead of writing all configs in this we can source defaults
-	# Find a generic way
-
 	if [ -f "${__basedir}/defaults/factory/${model}" ]; then
 		. "${__basedir}/defaults/factory/${model}"
 		_log "info" "${node}: Load factory defaults for '${model}'."
 	else
 		_error "${node}: No factory defaults for '${model}' found."
 	fi
-	
 }
 
 _get_openwrt_firmware_file_name() {
@@ -188,8 +161,7 @@ _get_openwrt_firmware_file_name() {
 		--insecure \
 		--silent \
 		"https://downloads.openwrt.org/${OPENWRT_RELEASE_NAME}/${OPENWRT_RELEASE_DATE}/${chipset}/generic/md5sums" \
-	| grep -E "${model}.*factory" | awk '{ print $2 }' 
-
+	| grep -E "${model}.*factory" | awk '{ print $2 }'
 }
 
 _get_openwrt_firmware_file_md5sum() {
@@ -197,14 +169,13 @@ _get_openwrt_firmware_file_md5sum() {
 		--insecure \
 		--silent \
 		"https://downloads.openwrt.org/${OPENWRT_RELEASE_NAME}/${OPENWRT_RELEASE_DATE}/${chipset}/generic/md5sums" \
-	| grep -E "${model}.*factory" | awk '{ print $1 }' 
-
+	| grep -E "${model}.*factory" | awk '{ print $1 }'
 }
 
 _download_openwrt() {		# TODO
 	firmware_file_name="$( _get_openwrt_firmware_file_name )"
 	firmware_file_name="${firmware_file_name#"*"}"		# Cleanup file name
-	
+
 	if [ ! -e "${FIRMWARE_DIR}/${firmware_file_name}" ]; then
 		firmware_file_url="https://downloads.openwrt.org/${OPENWRT_RELEASE_NAME}/${OPENWRT_RELEASE_DATE}/${chipset}/generic/${firmware_file_name}"
 		curl \
@@ -220,7 +191,7 @@ _download_openwrt() {		# TODO
 _set_openwrt_defaults() {
 	. "${__basedir}/defaults/openwrt/generic"
 	OPENWRT_RELEASE_NAME="barrier_breaker"		# TODO
-	case ${OPENWRT_RELEASE_NAME} in
+	case "${OPENWRT_RELEASE_NAME}" in
 		a*_a*)
 			OPENWRT_RELEASE_DATE="12.07"
 			;;
@@ -231,8 +202,8 @@ _set_openwrt_defaults() {
 			_error "Unknown OPENWRT_RELEASE_NAME '${OPENWRT_RELEASE_NAME}'."
 			;;
 	esac
-	
-	if [ -z ${firmware} ]; then
+
+	if [ -z "${firmware}" ]; then
 		_download_openwrt
 	fi
 }
@@ -269,13 +240,13 @@ Usage: $ME OPTIONS
                      or a directory containing all node-files
     --state STATE    factory | openwrt
     --verbose        be verbose # TODO
-    
+
     --sudo           use sudo
     --nm             configure network-manager (means disable)
     --help           display usage information
     --version        display version information
     --ping-test      just ping all nodes
-    
+
 __END_OF_USAGE
 }
 #######
@@ -290,11 +261,11 @@ _parse_args() {
 
 	VERBOSITY_LEVEL=0
 	while [ -n "${1}" ]; do
-		case ${1} in
+		case "${1}" in
 			-h|--help)
 				_usage && exit 0
 				;;
-			
+
 			-V|--version)
 				_version && exit 0
 				;;
@@ -319,10 +290,10 @@ _parse_args() {
 					fi
 				fi
 				;;
-			
+
 			--state)
 				shift
-				case ${1} in
+				case "${1}" in
 					factory)
 						state="factory"
 						;;
@@ -334,23 +305,23 @@ _parse_args() {
 						;;
 				esac
 				;;
-			
+
 			-s|--sudo)
 				SUDO_FUNC="sudo"
 				_set_sudo_func
 				;;
-			
+
 			--nm)
 				NETWORK_MANAGER=1
 				;;
-			
+
 			-v|--verbose) 	# TODO
 				VERBOSITY_LEVEL=$(( ${VERBOSITY_LEVEL} + 1 ))
 				;;
-			
-			
+
+
 			--download-openwrt)		# TODO
-				for __model in $( ls ${__basedir}/defaults/factory ); do
+				for __model in $( ls "${__basedir}/defaults/factory" ); do
 					:
 				done
 				;;
@@ -358,7 +329,7 @@ _parse_args() {
 			--ping-test)
 				OPT_PING_TEST=1
 				;;
-			
+
 			*)
 				_error "Unexpected argument '${1}'"
 				;;
@@ -386,8 +357,8 @@ if [ "${NETWORK_MANAGER}" = "1" ]; then
 	$SUDO_FUNC /etc/init.d/network-manager stop
 fi
 
+NODES_DIR="${__dirname}/nodes"
 if [ -z "${OPT_NODES}" ]; then
-	NODES_DIR="${__dirname}/nodes"
 	OPT_NODES="$( ls ${NODES_DIR} )"
 	_log "info" "${ME} - Start looping over nodes in '${NODES_DIR}'..."
 else
@@ -398,20 +369,20 @@ fi
 for node_file in ${OPT_NODES}; do
 
 	node="${node_file}"
-	
+
 	if [ ! -f "${NODES_DIR}/${node_file}" ]; then
 		_error "${node}: Could not load config '${node_file}'"
 		_log "log" "${node}: Skipping node"
 
 	else
-		_log "log" "*** Next device in list: '${node}' - '${model}' - '${macaddr}' ***"
 		. "${NODES_DIR}/${node_file}"		# Load node config
-		
+		_log "log" "*** Next device in list: '${node}' - '${model}' - '${macaddr}' ***"
+
 		# _get_state # TODO
 		_set_generic_defaults
 		_set_model_defaults
-		
-		case ${state} in 
+
+		case "${state}" in
 			factory)
 				_set_factory_defaults
 				;;
@@ -419,38 +390,38 @@ for node_file in ${OPT_NODES}; do
 				_set_openwrt_defaults
 				;;
 		esac
-		
+
 		. "${NODES_DIR}/${node_file}"		# Load node config, again ...
-	
+
 		_set_client_ip
 		_set_arp_entry
-		
+
 		_ping_router_ip
-		case ${?} in
+		case "${?}" in
 			0)
 				_log "log" "${node}: Network status: OK"
-	
+
 				if [ ! ${OPT_PING_TEST} ]; then
-	
+
 					case ${state} in
 						factory)
-							
+
 							if [ -z ${firmware} ]; then
 								_download_openwrt		# TODO
 							fi
-							
+
 							_log "info" "${node} - Flashing with '${firmware}'..."
 								. ${__basedir}/flash-over-factory/${model}.sh  # TODO # but works atm
 							_flash_over_factory                                # TODO # but works atm
 							;;
-					
+
 						openwrt)
 							# TODO
-							case ${protocol} in 
+							case ${protocol} in
 								telnet)
 									# TODO
 									nc -l 1234 < ${firmware}
-									{ 
+									{
 										nc ${client_ip} 1234 > /tmp/fw
 										sleep 1
 										sysupgrade -n /tmp/fw
@@ -464,16 +435,20 @@ for node_file in ${OPT_NODES}; do
 								;;
 							esac # END of PROTOCOL
 							;;
+							*)
+								_log "error" "No state set!"
+								exit
+							;;
 						esac # END of STATE
 					fi # END of OPT_PING_TEST
 				;;
-			
+
 			*)
 				_log "error" "${node}: Network status: FAILED - Not responsing."
 				_log "log" "$node}: Skipping node"
 				;;
 		esac	# END of _ping_router_ip
-			
+
 		_reset_arp_entry
 	fi
 
@@ -485,10 +460,16 @@ _log "log" "${ME} - Finished."
 _reset_network
 if [ "${NETWORK_MANAGER}" = "1" ]; then
 	__log "log" ""
-	$SUDO_FUNC /etc/init.d/network-manager start; 
+	$SUDO_FUNC /etc/init.d/network-manager start;
 fi
 
 _log "info" "${ME} - Exit"
 
 exit 0
 
+#
+# TODO
+# Feature request
+#	tftp-server for model tl-wr841n-v9, tl-wdr4300v1
+#		use dnsmasq and static ip configuration
+#

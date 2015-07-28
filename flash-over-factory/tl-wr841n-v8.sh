@@ -6,7 +6,7 @@
 
 _flash_over_factory() {
 
-	fw="${firmware_dir}/${firmware}"
+	fw="${FIRMWARE_DIR}/${firmware}"
 	if [ ! -e "${fw}" ]; then
 		_log "error" "Firmware '${fw}' not found!"
 		exit 1

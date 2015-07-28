@@ -1,7 +1,7 @@
 #!/bin/sh
 
 _log() {
-	# ${1} 	: type [log|info|error]
+	# ${1}	: type [log|info|error]
 	# ${2}	: message
 
 	echo "$(date "+%F %T") [${1}] ${2}"
