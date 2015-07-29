@@ -1,0 +1,5 @@
+#!/bin/sh
+# model defaults: TL-WR842ND
+
+chipset="ar71xx"
+

@@ -1,6 +1,4 @@
-
+#!/bin/sh
 # factory defaults: TL-WR841
 
-. ${__basedir}/defaults/models/tl-wr841
-. ${__basedir}/defaults/factory/tl
-
+. "${__basedir}"/defaults/factory/tl

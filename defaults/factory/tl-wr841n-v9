@@ -1,3 +1,7 @@
+#!/bin/sh
+# factory defaults: TL-WR841N-v8
 
-# TL-WR841N-v9 defaults
+. "${__basedir}"/defaults/factory/tl-wr841
 
+# FIXME
+#firmware="wr841nv8_en_3_15_9_up_boot(140724).bin"

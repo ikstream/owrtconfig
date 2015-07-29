@@ -4,12 +4,12 @@
 # TL-WR841ND-V8.0
 #####################
 
-_flash_over_factory() {
+_flash_over_factory_via_http() {
 
-	fw="${FIRMWARE_DIR}/${firmware}"
-	if [ ! -e "${fw}" ]; then
+#	fw="${FIRMWARE_DIR}/${firmware}"
+	if [ ! -e "${firmware}" ]; then
 		_log "error" "Firmware '${fw}' not found!"
-		exit 1
+		exit 3
 	fi
 
 	curl \
@@ -18,9 +18,10 @@ _flash_over_factory() {
 		--user "${user}":"${password}" \
 		--include \
 		--referer "http://${router_ip}/userRpm/SoftwareUpgradeRpm.htm" \
-		--form "Filename=@${fw}" -F "Upgrade=Upgrade" \
+		--form "Filename=@${firmware}" -F "Upgrade=Upgrade" \
 		"http://${router_ip}/incoming/Firmware.htm" \
-		> /dev/null 2> /dev/null
+		> /dev/null \
+		2> /dev/null
 	#	-o "${__basedir}/log-${node}.html"
 }
 

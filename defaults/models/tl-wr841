@@ -1,5 +1,4 @@
-
+#!/bin/sh
 # model defaults: TL-WR841
 
 chipset="ar71xx"
-
