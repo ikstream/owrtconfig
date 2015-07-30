@@ -10,7 +10,7 @@ name says.
 ### What does it do?
 
 `owrtflash-ng.sh` can be used to flash **OpenWrt** en mass on multiple
-devices nearly *at once*.
+devices nearly *at once*, which are connected to a client the same switch.
 
 The minimum config about a 'node', which have to be stated is a `model`
 and a ethernet `macaddr`, if it come fresh out of the box. Dissent options
