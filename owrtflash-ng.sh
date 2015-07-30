@@ -1,6 +1,5 @@
 #!/bin/sh
-#  DEBUG MODE ON
-set -x
+#set -x
 
 # unix shell script find out which directory the script file resides?
 # https://stackoverflow.com/a/1638397
@@ -26,7 +25,14 @@ _date() {
 _log() {
 	# ${1}	: type [log|info|error]
 	# ${2}	: message
-	echo "$( _date ) [${1}] ${2}"
+
+	case ${1} in
+		log) echo "$( _date ) [${1}]   ${2}" ;;
+		info) echo "$( _date ) [${1}]  ${2}" ;;
+		error) echo "$( _date ) [${1}] ${2}" ;;
+	esac
+
+#	echo "$( _date ) [${1}] ${2}"
 }
 
 # log function without line break
@@ -40,7 +46,7 @@ _set_sudo_func() {
 	SUDO_FUNC="sudo"  # aka ALLWAYS ON
 	if [ -n ${SUDO_FUNC} ]
 	then
-		_log "info" "${ME} - Check for \`sudo\`"
+		_log "info" "Checking for \`sudo\`"
 		${SUDO_FUNC} true || _log "error" "\`sudo\` not available."
 	fi
 }
@@ -68,10 +74,10 @@ telnet"
 	done
 	if [ ${ERROR} ]
 	then
-		log "error" "Check requirements failed. EXIT."
+		_log "error" "Checking requirements failed. Abort."
 		exit 2
 	else
-		log "info" "Check requirements passed."
+		_log "info" "Checking requirements passed."
 	fi
 }
 ########################################################################
@@ -80,28 +86,28 @@ telnet"
 ## NETWORK HELPER FUNCTIONS ##
 ##############################
 _reset_network() {
-	_log "info" "Reset network"
+	_log "info" "Resetting network"
 	${SUDO_FUNC} ip neighbour flush dev eth0         >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip route flush table main dev eth0  >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip addr flush dev eth0              >/dev/null 2>/dev/null
 }
 #####################
 _set_client_ip() {
-	_log "info" "*** ${node}: Setting client IP to ${client_ip}"
+	_log "info" "*** ${node}: Setting client IP to ${client_ip}."
 	${SUDO_FUNC} ip link set eth0 up                   >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip addr add ${client_ip}/24 dev eth0  >/dev/null 2>/dev/null
 	# TODO: Specify subnet, we may not allways want /24
 }
 ############################
 _set_router_arp_entry() {
-	_log "info" "*** ${node}: Setting arp table entry for '${router_ip}' on '${macaddr}'"
+	_log "info" "*** ${node}: Setting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip neighbor add ${router_ip} lladdr ${macaddr} dev eth0 \
 		>/dev/null 2>/dev/null
 }
 ##############################
 _reset_router_arp_entry() {
-	_log "info" "*** ${node}: Deleting arp table entry for '${router_ip}' on '${macaddr}'"
+	_log "info" "*** ${node}: Deleting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -d ${router_ip}
 	${SUDO_FUNC} ip neighbor del ${router_ip} dev eth0 \
 		>/dev/null 2>/dev/null
@@ -114,7 +120,7 @@ _ping_router() {
 	_set_client_ip
 	_set_router_arp_entry
 
-	_log "info" "${node}: Testing network connection to ${router_ip} via arping"
+	_log "info" "*** ${node}: Testing network connection to ${router_ip} via arping."
 	${SUDO_FUNC} arping \
 		-q \
 		-c 1 \
@@ -149,10 +155,12 @@ _get_state() {
 
 ########################################################################
 _set_generic_defaults() {
+	_log "info" "*** ${node}: Load generic defaults."
 	. "${__basedir}/defaults/generic"
 }
 ##########################
 _set_model_defaults() {
+	_log "info" "*** ${node}: Load hardware defaults for '${model}'."
 	. "${__basedir}/defaults/models/${model}"
 }
 ########################################################################
@@ -166,10 +174,10 @@ _set_state() {
 _set_factory_defaults() {
 	if [ -f "${__basedir}/defaults/factory/${model}" ]
 	then
-		_log "info" "${node}: Load factory defaults for '${model}'."
+		_log "info" "*** ${node}: Load factory defaults for '${model}'."
 		. "${__basedir}/defaults/factory/${model}"
 	else
-		_log "error" "${node}: No factory defaults for '${model}' found."
+		_log "error" "*** ${node}: No factory defaults for '${model}' found."
 	fi
 }
 
@@ -190,16 +198,16 @@ _set_firmware_image() {
 	case ${OPT_FROM} in
 		factory)
 			case ${OPT_TO} in
-				factory) firmware="${FIRMWARE_DIR}/factory/${model}/*/factory.bin"  ;;
-				openwrt) firmware="${FIRMWARE_DIR}s/openwrt/${model}-factory.bin"   ;;
+				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin            ;;
+				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-factory.bin    ;;
 				custom)  . "${NODES_DIR}/${node_file}"                              ;;
 			esac
 		;;
 		openwrt|custom)
 			case ${OPT_TO} in
-				factory) firmware="${FIRMWARE_DIR}/factory/${model}/*/factory.bin.stripped"  ;;
-				openwrt) firmware="${FIRMWARE_DIR}/openwrt/${model}-sysupgrade.bin"          ;;
-				custom)  . "${NODES_DIR}/${node_file}"                                       ;;
+				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin.stripped   ;;
+				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-sysupgrade.bin ;;
+				custom)  . "${NODES_DIR}/${node_file}"                              ;;
 			esac
 		;;
 	esac
@@ -275,17 +283,19 @@ _scp () {
 		scp \
 			${SSH_OPTS} \
 			"${1}" \
-			${user}@${router_ip}:"${2}"
+			${user}@${router_ip}:"${2}" \
+				>/dev/null 2>/dev/null
 }
 
 _ssh() {
 	# Usage:
-	#	_exec_ssh "reboot && exit"
+	#	_ssh "reboot && exit"
 	sshpass -p "${password}" \
 		ssh \
 			${SSH_OPTS} \
 			${user}@${router_ip} \
-			$@
+			$@ #\
+				#>/dev/null 2>/dev/null
 }
 
 _install_nohup_script() {
@@ -303,6 +313,7 @@ _flash() {
 
 	_log "log" "*** ${node}: Start flashing with '${firmware}'..."
 	_flash_over_${state}
+	_log "log" "*** ${node}: Finished flashing."
 }
 ##########################
 ## _flash_over_${state} ##
@@ -354,23 +365,52 @@ _flash_over_openwrt_via_ssh() {
 	{
 		"${__basedir}/helper_functions/set_passwd_via_telnet.exp" \
 			${router_ip} \
-			admin
+			${password} \
+				>/dev/null 2>/dev/null
+
+		START=1
+		STOP=5
+		for i in $(seq 1 5)
+		do
+			sleep 3 # give dropbear time to restart
+			_log "info" "*** ${node}: Checking \`ssh\` remote shell login (Try ${i}/${STOP})."
+			_ssh "exit" \
+				>/dev/null 2>/dev/null
+			if [ ${?} -eq 0 ]
+			then
+				_log "log" "*** ${node}: Checking \`ssh\` passed."
+				break
+			else
+				if [ ${i} -eq 5 ]
+				then
+					ERROR=1
+					_log "error" "*** ${node}: Skipping node. \`ssh\` is NOT available."
+				fi
+			fi
+		done
+		unset START
+		unset STOP
 	}
-	sleep 2 # give dropbear time to restart
 
-	# install `nohup`s version of the poor on our router
-	_install_nohup_script
+	if [ ! ${ERROR} ]
+	then
+		# install `nohup`s version of the poor on our router
+		_install_nohup_script
 
-	# copy firmware to router
-	_scp "${firmware}" /tmp/fw
+		# copy firmware to router
+		_scp ${firmware} /tmp/fw
 
-	# start `sysupgrade` with our nohup version
-	_ssh "sh /tmp/nohup.sh \
-			sysupgrade -n /tmp/fw \
-				> /dev/null \
-				2> /dev/null \
-				< /dev/null \
-				&"
+		# start `sysupgrade` with our nohup version
+		_log "log" "*** ${node}: Starting \`sysupgrade\`..."
+		_ssh "sh /tmp/nohup.sh \
+				sysupgrade -n /tmp/fw \
+					> /dev/null \
+					2> /dev/null \
+					< /dev/null \
+					&" \
+						2> /dev/null
+	fi
+	unset ERROR
 }
 
 _flash_over_custom_via_telnet() {
@@ -536,11 +576,12 @@ _parse_args() {
 
 ########################################################################
 _loop_over_nodes() {
+	_log "log" "Loop over nodes '${OPT_NODES}'."
 	for node_file in ${OPT_NODES}
 	do
 		node="${node_file}"
 		node_file="${NODES_DIR}/${node_file}"
-		_log "log" "### Next device in list: '${node}' ###"
+		_log "log" "Next device in list: '${node}'."
 
 		_set_node_config
 
@@ -555,11 +596,11 @@ _loop_over_nodes() {
 			_log "error" "*** ${node}: Network status: FAILED (Not responsing)"
 			_log "log" "*** ${node}: Flashing skipped."
 		fi
-
+		_log "info" "*************"
 	done
 
 	_reset_network
-	_log "log" "### Loop over nodes finished. ###"
+	_log "log" "Loop over nodes finished."
 }
 
 ##########
@@ -595,14 +636,14 @@ _main()
 
 	if [ ${EXIT} ]
 	then
-		_log "log" "EXIT."
+		_log "log" "Abort."
 		exit 2
 	fi
 
 	unset node_file
 ########################################################################
 	if [ ${NETWORK_MANAGER} ]; then
-		__log "log" "${ME} - "
+		__log "log" ""
 		${SUDO_FUNC} service network-manager stop
 	fi
 ########################################################################
@@ -622,7 +663,7 @@ FIRMWARE_DIR="${__basedir}/firmware-images"
 NODES_DIR="${__basedir}/nodes"
 
 _main ${*}
-_log "info" "${ME} - Exit"
+_log "info" "Exit"
 exit 0
 ########################################################################
 ########################################################################
