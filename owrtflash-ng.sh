@@ -54,15 +54,18 @@ _set_sudo_func() {
 _check_requirements() {
 	CMDS="arp
 arping
-cat
 curl
-grep
 ip
 ping
 pgrep
 ssh
 sshpass
-telnet"
+telnet
+cat
+grep
+sed
+awk
+sudo"
 
 	for cmd in ${CMDS}
 	do
@@ -292,9 +295,11 @@ _ssh() {
 	#	_ssh "reboot && exit"
 	sshpass -p "${password}" \
 		ssh \
+			-T \
 			${SSH_OPTS} \
 			${user}@${router_ip} \
-			$@ #\
+			$@ \
+				2> &1
 				#>/dev/null 2>/dev/null
 }
 
@@ -700,4 +705,6 @@ exit 0
 ########################################################################
 # NOTES
 ## EXAMPLE USAGE
-# ./owrtconfig-ng.sh
+# ./owrtconfig-ng.sh --nodes 0142 --from factory --to openwrt --sudo
+# ./owrtconfig-ng.sh --nodes 0142 --from openwrt --to openwrt --sudo
+# ./owrtconfig-ng.sh --nodes 0142 --from openwrt --to factory --sudo
