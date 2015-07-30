@@ -21,5 +21,8 @@ expect "Retype password:"
 send "$newpassword\r"
 expect "#"
 
+send "/etc/init.d/dropbear restart"
+expect "#"
+
 send "exit\r"
 expect eof

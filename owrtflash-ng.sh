@@ -6,23 +6,27 @@
 __basename="$( basename "${0}" )"
 __basedir="$( dirname "$( readlink -f "${0}" )" )"
 
-_set_ME() {
+_set_ME()
+{
 	ME="${__basename}"
 }
 
-_set_VER() {
+_set_VER()
+{
 	VER="2.1.0"
 }
 
 #############################
 ## GENERAL HELPER FUNCTION ##
 #############################
-_date() {
+_date()
+{
 	echo -n "$( date "+%F %T")"
 }
 
 # normal log function
-_log() {
+_log()
+{
 	# ${1}	: type [log|info|error]
 	# ${2}	: message
 
@@ -36,13 +40,15 @@ _log() {
 }
 
 # log function without line break
-__log() {
+__log()
+{
 	# ${1}	: type [log|info|error]
 	# ${2}	: message
 	echo -n "$( _date ) [${1}] ${2}"
 }
 
-_set_sudo_func() {
+_set_sudo_func()
+{
 	SUDO_FUNC="sudo"  # aka ALLWAYS ON
 	if [ -n ${SUDO_FUNC} ]
 	then
@@ -51,7 +57,8 @@ _set_sudo_func() {
 	fi
 }
 
-_check_requirements() {
+_check_requirements()
+{
 	CMDS="arp
 arping
 curl
@@ -88,35 +95,40 @@ sudo"
 ##############################
 ## NETWORK HELPER FUNCTIONS ##
 ##############################
-_reset_network() {
+_reset_network()
+{
 	_log "info" "Resetting network"
 	${SUDO_FUNC} ip neighbour flush dev eth0         >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip route flush table main dev eth0  >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip addr flush dev eth0              >/dev/null 2>/dev/null
 }
 #####################
-_set_client_ip() {
+_set_client_ip()
+{
 	_log "info" "*** ${node}: Setting client IP to ${client_ip}."
 	${SUDO_FUNC} ip link set eth0 up                   >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip addr add ${client_ip}/24 dev eth0  >/dev/null 2>/dev/null
 	# TODO: Specify subnet, we may not allways want /24
 }
 ############################
-_set_router_arp_entry() {
+_set_router_arp_entry()
+{
 	_log "info" "*** ${node}: Setting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null
 	${SUDO_FUNC} ip neighbor add ${router_ip} lladdr ${macaddr} dev eth0 \
 		>/dev/null 2>/dev/null
 }
 ##############################
-_reset_router_arp_entry() {
+_reset_router_arp_entry()
+{
 	_log "info" "*** ${node}: Deleting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -d ${router_ip}
 	${SUDO_FUNC} ip neighbor del ${router_ip} dev eth0 \
 		>/dev/null 2>/dev/null
 }
 ###################
-_ping_router() {
+_ping_router()
+{
 
 	_set_state
 	_reset_network
@@ -135,7 +147,8 @@ _ping_router() {
 ## SET DEFAULTS HELPER FUNCTIONS ##
 ###################################
 
-_get_state() {
+_get_state()
+{
 	:
 	# TODO
 	# Using nmap to decide node is in factory or openwrt mode
@@ -157,24 +170,28 @@ _get_state() {
 #######
 
 ########################################################################
-_set_generic_defaults() {
+_set_generic_defaults()
+{
 	_log "info" "*** ${node}: Load generic defaults."
 	. "${__basedir}/defaults/generic"
 }
 ##########################
-_set_model_defaults() {
+_set_model_defaults()
+{
 	_log "info" "*** ${node}: Load hardware defaults for '${model}'."
 	. "${__basedir}/defaults/models/${model}"
 }
 ########################################################################
-_set_state() {
+_set_state()
+{
 	_set_generic_defaults
 	_set_model_defaults
 
 	_set_${state}_defaults
 }
 ########################################################################
-_set_factory_defaults() {
+_set_factory_defaults()
+{
 	if [ -f "${__basedir}/defaults/factory/${model}" ]
 	then
 		_log "info" "*** ${node}: Load factory defaults for '${model}'."
@@ -184,33 +201,39 @@ _set_factory_defaults() {
 	fi
 }
 
-_set_openwrt_defaults() {
+_set_openwrt_defaults()
+{
+	_log "info" "*** ${node}: Load OpenWrt defaults."
 	. "${__basedir}/defaults/openwrt"
 }
 
-_set_custom_defaults() {
+_set_custom_defaults()
+{
 	_set_node_config
 }
 
-_set_node_config() {
+_set_node_config()
+{
+	_log "info" "*** ${node}: Load node config file."
 	. "${node_file}"
 }
 
 ##########################
-_set_firmware_image() {
+_set_firmware_image()
+{
 	case ${OPT_FROM} in
 		factory)
 			case ${OPT_TO} in
 				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin            ;;
 				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-factory.bin    ;;
-				custom)  . "${NODES_DIR}/${node_file}"                              ;;
+				custom)  . "${node_file}"                              ;;
 			esac
 		;;
 		openwrt|custom)
 			case ${OPT_TO} in
 				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin.stripped   ;;
 				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-sysupgrade.bin ;;
-				custom)  . "${NODES_DIR}/${node_file}"                              ;;
+				custom)  . "${node_file}"                              ;;
 			esac
 		;;
 	esac
@@ -218,7 +241,8 @@ _set_firmware_image() {
 ########################################################################
 ########################################################################
 # TODO
-_get_openwrt_firmware_file_name() {
+_get_openwrt_firmware_file_name()
+{
 	:
 	# TODO
 #	curl \
@@ -228,7 +252,8 @@ _get_openwrt_firmware_file_name() {
 #	| grep -E "${model}.*factory" | awk '{ print $2 }'
 }
 
-_get_openwrt_firmware_file_md5sum() {
+_get_openwrt_firmware_file_md5sum()
+{
 	:
 	# TODO
 #	curl \
@@ -238,7 +263,8 @@ _get_openwrt_firmware_file_md5sum() {
 #	| grep -E "${model}.*factory" | awk '{ print $1 }'
 }
 
-_download_openwrt() {
+_download_openwrt()
+{
 	:
 	# TODO
 #	firmware_file_name="$( _get_openwrt_firmware_file_name )"
@@ -262,12 +288,14 @@ _download_openwrt() {
 ###################
 ## MAIN FUNCTION ##
 ###################
-_telnet() {
+_telnet()
+{
 	# TODO
 	:
 }
 
-_copy_file_via_telnet() {
+_copy_file_via_telnet()
+{
 	# TODO
 	:
 }
@@ -279,7 +307,8 @@ SSH_OPTS="\
 -o UserKnownHostsFile=/dev/null \
 "
 
-_scp () {
+_scp ()
+{
 	# $1 : local-file
 	# $2 : remote-path
 	sshpass -p "${password}" \
@@ -290,20 +319,21 @@ _scp () {
 				>/dev/null 2>/dev/null
 }
 
-_ssh() {
+_ssh()
+{
 	# Usage:
 	#	_ssh "reboot && exit"
 	sshpass -p "${password}" \
 		ssh \
-			-T \
 			${SSH_OPTS} \
 			${user}@${router_ip} \
-			$@ \
-				2> &1
+			$@ #\
+				#2 >&1
 				#>/dev/null 2>/dev/null
 }
 
-_install_nohup_script() {
+_install_nohup_script()
+{
 	_scp \
 		"${__basedir}/helper_functions/nohup.sh" \
 		"/tmp/nohup.sh"
@@ -311,19 +341,58 @@ _install_nohup_script() {
 ########################################################################
 ## FLASHING ##
 ##############
-_flash() {
+
+_test_ssh()
+{
+	START=1
+	STOP=5
+	for i in $(seq ${START} ${STOP})
+	do
+		sleep 5 # give dropbear time to restart
+		_log "info" "*** ${node}: Checking \`ssh\` remote shell login (Try ${i}/${STOP})."
+		_ssh "exit" \
+			2>/dev/null
+		if [ ${?} -eq 0 ]
+		then
+			_log "log" "*** ${node}: Checking \`ssh\` passed."
+			break
+		else
+			if [ ${i} -eq ${STOP} ]
+			then
+				SSH_ERROR=1
+				_log "error" "*** ${node}: Skipping node. (\`ssh\` is NOT available.)"
+			fi
+		fi
+	done
+	unset START
+	unset STOP
+}
+
+_set_password_via_telnet()
+{
+	_log "log" "*** ${node}: Setting password via \`telnet\`."
+	"${__basedir}/helper_functions/set_passwd_via_telnet.exp" \
+		${router_ip} \
+		${password} \
+			>/dev/null 2>/dev/null \
+	||	_log "error" "*** ${node}: \`_set_password_via_telnet\` failed."
+
+	_test_ssh
+}
+
+_flash()
+{
 	_set_generic_defaults
 	_set_model_defaults
 	_set_firmware_image
 
-	_log "log" "*** ${node}: Start flashing with '${firmware}'..."
 	_flash_over_${state}
-	_log "log" "*** ${node}: Finished flashing."
 }
 ##########################
 ## _flash_over_${state} ##
 ##########################
-_flash_over_factory() {
+_flash_over_factory()
+{
 	_set_factory_defaults
 	## Overloads and exec `_flash_over_factory`
 	# Load `_flash_over_factory_via_http`
@@ -331,25 +400,34 @@ _flash_over_factory() {
 	_flash_over_factory_via_http
 }
 
-_flash_over_openwrt() {
+_flash_over_openwrt()
+{
 	_set_openwrt_defaults
+	case ${OPT_FROM} in
+		openwrt) : ;;
+		custom)  . "${node_file}" ;;
+	esac
 	_flash_over_openwrt_via_${protocol} #\
 		#|| _log "error" "in \`_flash_over_openwrt_via_${protocol}\`"
 }
 
-_flash_over_custom() {
+_flash_over_custom()
+{
+	_set_openwrt_defaults
 	_set_custom_defaults
 	_flash_over_custom_via_${protocol}
 }
 ##########################################
 ## _flash_over_${state}_via_${protocol} ##
 ##########################################
-_flash_over_factory_via_http() {
+_flash_over_factory_via_http()
+{
 	# Dummy function
 	:
 }
 
-_flash_over_openwrt_via_telnet() {
+_flash_over_openwrt_via_telnet()
+{
 	# TODO
 	# Install nohup.sh via telnet
 	# _copy_file_via_telnet
@@ -368,53 +446,28 @@ _flash_over_openwrt_via_telnet() {
 	###########################
 	####### Workaround ########
 	###########################
+	_set_password_via_telnet
 	_flash_over_openwrt_via_ssh
 	############################
 }
 
-_flash_over_openwrt_via_ssh() {
-
-	# _set_password_via_telnet()
-	{
-		"${__basedir}/helper_functions/set_passwd_via_telnet.exp" \
-			${router_ip} \
-			${password} \
-				>/dev/null 2>/dev/null
-
-		START=1
-		STOP=5
-		for i in $(seq 1 5)
-		do
-			sleep 3 # give dropbear time to restart
-			_log "info" "*** ${node}: Checking \`ssh\` remote shell login (Try ${i}/${STOP})."
-			_ssh "exit" \
-				>/dev/null 2>/dev/null
-			if [ ${?} -eq 0 ]
-			then
-				_log "log" "*** ${node}: Checking \`ssh\` passed."
-				break
-			else
-				if [ ${i} -eq ${STOP} ]
-				then
-					ERROR=1
-					_log "error" "*** ${node}: Skipping node. \`ssh\` is NOT available."
-				fi
-			fi
-		done
-		unset START
-		unset STOP
-	}
-
-	if [ ! ${ERROR} ]
+_flash_over_openwrt_via_ssh()
+{
+	_log "log" "*** ${node}: Trying to flash with '${firmware}'..."
+	_test_ssh
+	if [ ! ${SSH_ERROR} ]
 	then
 		# install `nohup`s version of the poor on our router
-		_install_nohup_script
+		_log "info" "*** ${node}: Installing \`nohup.sh\` to \"${node}\"..."
+		_install_nohup_script \
+		||	_log "error" "*** ${node}: Installing \`nohup.sh\` to \"${node}\" failed."
 
 		# copy firmware to router
-		_scp ${firmware} /tmp/fw
+		_log "info" "*** ${node}: Copying \"${firmware}\" to \"${node}\"..."
+		_scp ${firmware} /tmp/fw \
+		||	_log "error" "*** ${node}: Copying \"${firmware}\" to \"${node}\" failed."
 
 		# start `sysupgrade` with our nohup version
-		_log "log" "*** ${node}: Starting \`sysupgrade\`..."
 		_ssh "sh /tmp/nohup.sh \
 				sysupgrade -n /tmp/fw \
 					> /dev/null \
@@ -422,25 +475,36 @@ _flash_over_openwrt_via_ssh() {
 					< /dev/null \
 					&" \
 						2> /dev/null
+
+		if [ ${?} -eq 0 ]
+		then
+			_log "log" "*** ${node}: Starting \`sysupgrade\`..."
+		else
+			_log "error" "*** ${node}: Some error occured while starting \`sysupgrade\`."
+		fi
 	fi
-	unset ERROR
+	unset SSH_ERROR
 }
 
-_flash_over_custom_via_telnet() {
+_flash_over_custom_via_telnet()
+{
 	_flash_over_openwrt_via_telnet
 }
-_flash_over_custom_via_ssh() {
+_flash_over_custom_via_ssh()
+{
 	_flash_over_openwrt_via_ssh
 }
 ########################################################################
-_version() {
+_version()
+{
 	cat <<__END_OF_VERSION
 ${ME} v${VER}
 
 __END_OF_VERSION
 }
 
-_usage() {
+_usage()
+{
 	_version
 	cat <<__END_OF_USAGE
 Usage: $ME OPTIONS
@@ -462,7 +526,8 @@ Usage: $ME OPTIONS
 __END_OF_USAGE
 }
 #######
-_parse_args() {
+_parse_args()
+{
 
 	if [ ${#} -eq 0 ]
 	then
@@ -588,7 +653,8 @@ _parse_args() {
 }
 
 ########################################################################
-_loop_over_nodes() {
+_loop_over_nodes()
+{
 	_log "log" "Loop over nodes '${OPT_NODES}'."
 	for node_file in ${OPT_NODES}
 	do
@@ -609,7 +675,6 @@ _loop_over_nodes() {
 			_log "error" "*** ${node}: Network status: FAILED (Not responsing)"
 			_log "log" "*** ${node}: Flashing skipped."
 		fi
-		_log "info" "*************"
 	done
 
 	_reset_network
