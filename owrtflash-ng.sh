@@ -328,10 +328,10 @@ _flash_over_custom() {
 ########################################################################
 _flash_over_openwrt_via_telnet() {
 	:
-#	TODO
 
+	# TODO
 	# Install nohup.sh via telnet
-#	_copy_file_via_telnet
+	# _copy_file_via_telnet
 
 	# Open socket on localhost
 #	nc -l 1233 < ${__basedir}/helper_functions/nohup.sh &
@@ -339,19 +339,16 @@ _flash_over_openwrt_via_telnet() {
 
 	# Start telnet session
 #	${__basedir}/helper_functions/flash_over_openwrt_via_telnet.exp ${router_ip} ${client_ip}
+	# FIXME
+	# For a reason the expect script does not work properly and fails on
+	# the nohup call for sysupgrade... to sad I have to go the other way
+	# around.
 
-	# TODO
-	# just enable ssh
-	# ${__basedir}/helper_functions/set_passwd_via_telnet.exp ${password}
-	# copy files via ssh
-	# _scp .. ..
-	# executre sysuptrade via ssh
-	# _ssh "..."
+	# Workaround
 	_flash_over_openwrt_via_ssh
 }
 
 _flash_over_openwrt_via_ssh() {
-	# TODO - what to improve?
 
 	# _set_password_via_telnet()
 	{
@@ -361,19 +358,19 @@ _flash_over_openwrt_via_ssh() {
 	}
 	sleep 2 # give dropbear time to restart
 
-	# install 'nohup's version for poor men on router
+	# install `nohup`s version of the poor on our router
 	_install_nohup_script
 
 	# copy firmware to router
 	_scp "${firmware}" /tmp/fw
 
 	# start `sysupgrade` with our nohup version
-	#_ssh "sh /tmp/nohup.sh sysupgrade -n /tmp/fw && exit"
-	_ssh "sh /tmp/nohup.sh sysupgrade -n /tmp/fw \
-		> /dev/null \
-		2> /dev/null \
-		< /dev/null \
-		&"
+	_ssh "sh /tmp/nohup.sh \
+			sysupgrade -n /tmp/fw \
+				> /dev/null \
+				2> /dev/null \
+				< /dev/null \
+				&"
 }
 
 _flash_over_custom_via_telnet() {
