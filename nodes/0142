@@ -1,0 +1,15 @@
+#!/bin/sh
+# 0142
+
+model="tl-wr841n-v8"
+macaddr="a0:f3:c1:05:8a:c2"
+
+firmware="${FIRMWARE_DIR}/custom/openwrt-ar71xx-generic-tl-wr841n-v8-squashfs-sysupgrade.bin"
+
+router_ip="192.168.1.1"
+client_ip="192.168.1.100"
+
+protocol="ssh"
+
+user="root"
+admin="admin"

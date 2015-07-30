@@ -1,0 +1,8 @@
+#!/bin/sh
+# 0041
+
+model="tl-wr841n-v8"
+macaddr="64:70:02:59:40:de"
+
+firmware="wr841nv8_en_3_15_9_up_boot(140724).bin"
+#protocol="ssh"

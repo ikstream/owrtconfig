@@ -1,0 +1,6 @@
+#!/bin/sh
+inventory_number="0136"
+
+model="tl-wr841n-v8"
+macaddr="a0:f3:c1:05:8b:16"
+firmware="openwrt/openwrt-ar71xx-generic-tl-wr841n-v8-squashfs-factory.bin"

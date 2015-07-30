@@ -1,0 +1,6 @@
+#!/bin/sh
+inventory_number="0138"
+
+model="tl-wr841n-v8"
+macaddr="64:70:02:59:40:ca"
+firmware="olsr2--tp-wr841n-v8-factory.bin"
