@@ -68,7 +68,7 @@ telnet"
 	do
 		if [ -z "$( ${SUDO_FUNC} -i which ${cmd} )" ]
 		then
-			_log "error" "'${cmd}' is not installed or available."
+			_log "error" "\`${cmd}\` is not installed or available."
 			ERROR=1
 		fi
 	done
@@ -336,10 +336,15 @@ _flash_over_custom() {
 	_set_custom_defaults
 	_flash_over_custom_via_${protocol}
 }
-########################################################################
-_flash_over_openwrt_via_telnet() {
+##########################################
+## _flash_over_${state}_via_${protocol} ##
+##########################################
+_flash_over_factory_via_http() {
+	# Dummy function
 	:
+}
 
+_flash_over_openwrt_via_telnet() {
 	# TODO
 	# Install nohup.sh via telnet
 	# _copy_file_via_telnet
@@ -355,8 +360,11 @@ _flash_over_openwrt_via_telnet() {
 	# the nohup call for sysupgrade... to sad I have to go the other way
 	# around.
 
-	# Workaround
+	###########################
+	####### Workaround ########
+	###########################
 	_flash_over_openwrt_via_ssh
+	############################
 }
 
 _flash_over_openwrt_via_ssh() {
@@ -381,7 +389,7 @@ _flash_over_openwrt_via_ssh() {
 				_log "log" "*** ${node}: Checking \`ssh\` passed."
 				break
 			else
-				if [ ${i} -eq 5 ]
+				if [ ${i} -eq ${STOP} ]
 				then
 					ERROR=1
 					_log "error" "*** ${node}: Skipping node. \`ssh\` is NOT available."
@@ -543,7 +551,7 @@ _parse_args() {
 				shift
 				if [ ${1} -lt 0 ]
 				then
-					_log "error" "\`--verbosity\`: Valua must be >= 0. EXIT."
+					_log "error" "\`--verbosity\`: Value must be >= 0. EXIT."
 					exit 2
 				else
 					VERBOSITY_LEVEL=${1}
@@ -630,16 +638,17 @@ _main()
 		if [ ! -f "${node_file}" ]
 		then
 			_log "error" "Node file '${node_file}' not found."
-			EXIT=1
+			ERROR=1
 		fi
 	done
 
-	if [ ${EXIT} ]
+	if [ ${ERROR} ]
 	then
 		_log "log" "Abort."
 		exit 2
 	fi
 
+	unset node
 	unset node_file
 ########################################################################
 	if [ ${NETWORK_MANAGER} ]; then
