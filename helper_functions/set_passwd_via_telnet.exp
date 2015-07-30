@@ -1,0 +1,25 @@
+#!/usr/bin/expect -f
+# wrapper to make passwd(1) be non-interactive
+# username is passed as 1st arg, passwd as 2nd
+
+set router_ip [lindex $argv 0]
+set newpassword [lindex $argv 1]
+
+spawn telnet $router_ip
+sleep 1
+expect "'^]'."
+
+send "\r"
+sleep .1
+expect "#"
+
+send "passwd\r"
+expect "New password:"
+send "$newpassword\r"
+
+expect "Retype password:"
+send "$newpassword\r"
+expect "#"
+
+send "exit\r"
+expect eof

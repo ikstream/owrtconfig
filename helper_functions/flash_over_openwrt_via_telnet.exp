@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+
+set router_ip [lindex $argv 0];
+set client_ip [lindex $argv 1];
+
+
+spawn telnet "$router_ip"
+sleep 3
+expect "'^]'."
+
+send "\r"
+sleep .1
+expect "#"
+
+send "nc $client_ip 1233 > /tmp/nohup.sh\r"
+sleep .5
+expect "#"
+
+send "nc $client_ip 1234 > /tmp/fw\r"
+sleep 2
+expect "#"
+
+send "sh /tmp/nohup.sh sysupgrade -n /tmp/fw\r"
+#send "sysupgrade -n /tmp/fw\r"
+sleep 5
+expect "#"
+
+#send "exit\r"
+expect eof
