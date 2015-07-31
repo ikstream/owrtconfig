@@ -1,0 +1,9 @@
+#!/bin/sh
+# generic failsafe defaults for TP-Link
+
+tftp_server_ip="192.168.0.66"
+tftp_client_ip="192.168.0.86"
+
+router_ip="${tftp_client_ip}"
+client_ip="${tftp_server_ip}"
+

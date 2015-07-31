@@ -1,0 +1,9 @@
+#!/bin/sh
+# failsafe defaults: TL-WDR3600
+
+. "${__basedir}/defaults/failsafe/tl"
+
+firmware="${FIRMWARE_DIR}/failsafe/wdr3600v1_tp_recovery.bin"
+
+# http://wiki.openwrt.org/toh/tp-link/tl-wdr3600#tftp_auto_recovery_in_revision_15
+

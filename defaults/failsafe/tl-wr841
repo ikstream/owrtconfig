@@ -1,0 +1,9 @@
+#!/bin/sh
+# failsafe defaults: TL-WR841N-v8,9
+
+. "${__basedir}/defaults/failsafe/tl
+
+
+
+# http://wiki.openwrt.org/toh/tp-link/tl-wr841nd#v8_v9_without_serial
+

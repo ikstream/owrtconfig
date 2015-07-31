@@ -1,0 +1,7 @@
+#!/bin/sh
+# failsafe defaults: TL-WR841N-v9
+
+. "${__basedir}"/defaults/failsafe/tl-wr841
+
+firmware="${FIRMWARE_DIR}/failsafe/wr841nv9_tp_recovery.bin"
+

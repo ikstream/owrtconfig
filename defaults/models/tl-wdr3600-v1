@@ -1,0 +1,4 @@
+#!/bin/sh
+# model defaults: TL-WDR3600-v1
+
+chipset="ar71xx"
