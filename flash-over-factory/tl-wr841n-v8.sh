@@ -4,14 +4,8 @@
 # TL-WR841ND-V8.0
 #####################
 
-_flash_over_factory_via_http() {
-
-#	fw="${FIRMWARE_DIR}/${firmware}"
-	if [ ! -e "${firmware}" ]; then
-		_log "error" "Firmware '${fw}' not found!"
-		exit 3
-	fi
-
+_flash_over_factory_via_http()
+{
 	curl \
 		--silent \
 		--user-agent "${user_agent}" \

@@ -22,7 +22,7 @@ and so on to have various ways of flashing a device.
 * flash via **http**-, **telnet**[1]- or **ssh**-protocol over a
 **factory**-, **openwrt**-, or **custom**[2]-firmware
 * network is configured with `iproute2` (welcome to the future!!)
-* Disable `network-manger` if you are using it on your ethernet card with
+* Disable `network-manger` (if you are using it on your ethernet card) with
  a commandline argument. You do not want to have `network-manager` running
  on `eth0`, while using that tool!
 * modular function design which is hopefully reuseable by other tools, or

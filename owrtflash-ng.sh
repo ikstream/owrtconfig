@@ -21,7 +21,7 @@ _set_VER()
 #############################
 _date()
 {
-	echo -n "$( date "+%F %T")"
+	echo -n "$( date "+%F %T" )"
 }
 
 # normal log function
@@ -72,7 +72,11 @@ cat
 grep
 sed
 awk
-sudo"
+sudo
+in.tftpd
+nohup
+terminator
+journalctl"
 
 	for cmd in ${CMDS}
 	do
@@ -212,6 +216,18 @@ _set_custom_defaults()
 	_set_node_config
 }
 
+_set_failsafe_defaults()
+{
+	if [ -f "${__basedir}/defaults/failsafe/${model}" ]
+	then
+		_log "info" "*** ${node}: Load failsafe defaults for '${model}'."
+		. "${__basedir}/defaults/failsafe/${model}"
+	else
+		_log "error" "*** ${node}: No failsafe defaults for '${model}' found."
+	fi
+}
+
+
 _set_node_config()
 {
 	_log "info" "*** ${node}: Load node config file."
@@ -224,19 +240,22 @@ _set_firmware_image()
 	case ${OPT_FROM} in
 		factory)
 			case ${OPT_TO} in
-				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin            ;;
-				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-factory.bin    ;;
-				custom)  . "${node_file}"                              ;;
+				factory)  firmware="${FIRMWARE_DIR}"/factory/${model}.bin             ;;
+				openwrt)  firmware="${FIRMWARE_DIR}"/openwrt/${model}-factory.bin     ;;
+				custom)   . "${node_file}"                                            ;;
 			esac
 		;;
 		openwrt|custom)
 			case ${OPT_TO} in
-				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin.stripped   ;;
-				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-sysupgrade.bin ;;
-				custom)  . "${node_file}"                              ;;
+				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin.stripped     ;;
+				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-sysupgrade.bin   ;;
+				custom)  . "${node_file}"                                             ;;
 			esac
 		;;
+		failsafe)        . "${__basedir}/defaults/failsafe/${model}"                  ;;
 	esac
+
+	_test_firmware
 }
 ########################################################################
 ########################################################################
@@ -311,12 +330,14 @@ _scp ()
 {
 	# $1 : local-file
 	# $2 : remote-path
+	_log "info" "*** ${node}: Copying \"${1}\" to \"${2}\"..."
 	sshpass -p "${password}" \
 		scp \
 			${SSH_OPTS} \
 			"${1}" \
 			${user}@${router_ip}:"${2}" \
-				>/dev/null 2>/dev/null
+				>/dev/null 2>/dev/null \
+	||	_log "error" "*** ${node}: Copying \"${1}\" to \"${2}\" failed."
 }
 
 _ssh()
@@ -332,7 +353,7 @@ _ssh()
 				#>/dev/null 2>/dev/null
 }
 
-_install_nohup_script()
+_install_nohup()
 {
 	_scp \
 		"${__basedir}/helper_functions/nohup.sh" \
@@ -344,9 +365,7 @@ _install_nohup_script()
 
 _test_ssh()
 {
-	START=1
-	STOP=5
-	for i in $(seq ${START} ${STOP})
+	for i in $(seq 1 5)
 	do
 		sleep 5 # give dropbear time to restart
 		_log "info" "*** ${node}: Checking \`ssh\` remote shell login (Try ${i}/${STOP})."
@@ -357,15 +376,22 @@ _test_ssh()
 			_log "log" "*** ${node}: Checking \`ssh\` passed."
 			break
 		else
-			if [ ${i} -eq ${STOP} ]
+			if [ ${i} -eq 5 ]
 			then
 				SSH_ERROR=1
 				_log "error" "*** ${node}: Skipping node. (\`ssh\` is NOT available.)"
 			fi
 		fi
 	done
-	unset START
-	unset STOP
+}
+
+_test_firmware()
+{
+	if [ ! -e "${firmware}" ]
+	then
+		_log "error" "Firmware '${firmware}' not found!"
+		exit 3
+	fi
 }
 
 _set_password_via_telnet()
@@ -393,9 +419,11 @@ _flash()
 ##########################
 _flash_over_factory()
 {
+	_log "log" "*** ${node}: Trying to flash with '${firmware}'..."
+
 	_set_factory_defaults
-	## Overloads and exec `_flash_over_factory`
-	# Load `_flash_over_factory_via_http`
+
+	# Overload and exec `_flash_over_factory_via_http`
 	. "${__basedir}/flash-over-factory/${model}.sh"
 	_flash_over_factory_via_http
 }
@@ -407,16 +435,103 @@ _flash_over_openwrt()
 		openwrt) : ;;
 		custom)  . "${node_file}" ;;
 	esac
-	_flash_over_openwrt_via_${protocol} #\
-		#|| _log "error" "in \`_flash_over_openwrt_via_${protocol}\`"
+	_flash_over_openwrt_via_${protocol}
 }
 
 _flash_over_custom()
 {
-	_set_openwrt_defaults
-	_set_custom_defaults
-	_flash_over_custom_via_${protocol}
+	_flash_over_openwrt
 }
+
+_flash_over_failsafe()
+{
+	model="${OPT_MODEL}"
+	_log "info" "${state}: Flash via TFTP for \"${model}\""
+	_set_generic_defaults
+	_set_model_defaults
+	_set_failsafe_defaults
+	_set_firmware_image
+
+	_reset_network
+	_set_client_ip
+
+	TFTP_DIR="/srv/tftp"
+	_log "info" "${state}: Copying '${firmware}' to '${TFTP_DIR}/'"
+	${SUDO_FUNC} \
+		cp \
+			"${firmware}" \
+			"${TFTP_DIR}/"
+
+	# TODO: Make it more generic
+	_log "info" "${state}: Starting monitor log..."
+	{
+	nohup \
+		${SUDO_FUNC} \
+		terminator \
+			--geometry=900x200-0-0 \
+			--execute \
+				"${__basedir}"/helper_functions/read_syslog.sh \
+		>/dev/null \
+		2>&1 \
+		&
+
+# journalctl --no-pager --follow since="$( date "+%F %T" )" /usr/sbin/in.tftpd \
+# Dafuq: List log for executable does not work
+# Cheating with grep...
+	}
+
+	_log "log" "${state}: Starting TFTPd..."
+	{
+	${SUDO_FUNC} \
+	/usr/sbin/in.tftpd \
+		--listen \
+	 	--user tftp \
+		--address 0.0.0.0:69 \
+		--secure \
+		-v -v -v \
+		"${TFTP_DIR}"
+	}
+	_TFTP_PID=${!}
+
+	_log "info" "${state}: Press \"q\" to exit \`_flash_over_failsafe\`..."
+	{
+		# Magic
+		test -t 0 \
+			&& stty -echo -icanon -icrnl time 0 min 0
+
+		keypress=
+		while [ "${keypress}" != "q" ]
+		do
+			keypress="$( dd bs=1 count=1 status=none | cat -v  )"
+		done
+
+		# Reset magic
+		test -t 0 \
+			&& stty sane
+
+		${SUDO_FUNC} \
+		killall /usr/sbin/in.tftpd \
+			&& _log "log" "${state}: TFTPd stopped." \
+			|| _log "error" "${state}:"
+	}
+
+	_log "info" "${state}: Cleanup '${TFTP_DIR}/'"
+	${SUDO_FUNC} \
+	rm \
+		"${TFTP_DIR}/$( basename ${firmware} )"
+
+	_reset_network
+
+	_log "log" "${state}: Exiting \`_flash_over_failsafe\`."
+	_log "log" "Exit."
+	exit 0
+
+	# NOTES
+	# apt-get install tftpd-hpa
+	# systemctl disable tftpd-hpa
+	# /etc/default/tftpd-hpa
+}
+
 ##########################################
 ## _flash_over_${state}_via_${protocol} ##
 ##########################################
@@ -454,20 +569,18 @@ _flash_over_openwrt_via_telnet()
 _flash_over_openwrt_via_ssh()
 {
 	_log "log" "*** ${node}: Trying to flash with '${firmware}'..."
+
 	_test_ssh
 	if [ ! ${SSH_ERROR} ]
 	then
 		# install `nohup`s version of the poor on our router
-		_log "info" "*** ${node}: Installing \`nohup.sh\` to \"${node}\"..."
-		_install_nohup_script \
-		||	_log "error" "*** ${node}: Installing \`nohup.sh\` to \"${node}\" failed."
+		_install_nohup
 
 		# copy firmware to router
-		_log "info" "*** ${node}: Copying \"${firmware}\" to \"${node}\"..."
 		_scp ${firmware} /tmp/fw \
-		||	_log "error" "*** ${node}: Copying \"${firmware}\" to \"${node}\" failed."
 
 		# start `sysupgrade` with our nohup version
+		{
 		_ssh "sh /tmp/nohup.sh \
 				sysupgrade -n /tmp/fw \
 					> /dev/null \
@@ -475,13 +588,9 @@ _flash_over_openwrt_via_ssh()
 					< /dev/null \
 					&" \
 						2> /dev/null
-
-		if [ ${?} -eq 0 ]
-		then
-			_log "log" "*** ${node}: Starting \`sysupgrade\`..."
-		else
-			_log "error" "*** ${node}: Some error occured while starting \`sysupgrade\`."
-		fi
+		} \
+		&& _log "log" "*** ${node}: Starting \`sysupgrade\`..." \
+		|| _log "error" "*** ${node}: Some error occured while flashing with \`sysupgrade\`."
 	fi
 	unset SSH_ERROR
 }
@@ -508,27 +617,30 @@ _usage()
 	_version
 	cat <<__END_OF_USAGE
 Usage: $ME OPTIONS
-
+Requiered:
     --nodes node1,node2,.. |    comma seperated list of node-names,
             /path/to/node/dir   or a directory containing all node-files
     --from STATE                factory | openwrt | custom
     --to   STATE                factory | openwrt | custom
-    --verbose INT               set verbosity (not implemented)
 
+Usefull:
     --sudo                      use sudo (if not running as root)
     --nm                        disable network-manager while running the script
+
+Optional:
+    --verbose INT               set verbosity (not implemented)
 
     --help                      display usage information and exit
     --version                   display version information and exit
 
     --ping-test                 just ping all nodes, do not flash or configure
+                                (not implemented)
 
 __END_OF_USAGE
 }
 #######
 _parse_args()
 {
-
 	if [ ${#} -eq 0 ]
 	then
 		_log "error" "No arguemnts given."
@@ -580,9 +692,10 @@ _parse_args()
 			--from)
 				shift
 				case ${1} in
-					factory) : ;;
-					openwrt) : ;;
-					custom)  : ;;
+					factory)  : ;;
+					openwrt)  : ;;
+					custom)   : ;;
+					failsafe) FAILSAFE=1 ;;
 					*)
 						_log "error" "\`--from\`: Unknown state '${1}'. EXIT."
 						exit 2
@@ -608,6 +721,18 @@ _parse_args()
 				OPT_TO="${1}"
 			;;
 
+			# OPT_MODEL
+			--model)
+				shift
+				if [ -z "${1}" ]
+				then
+					_log "error" "\`--model\` requires an argument. EXIT."
+					exit 2
+				else
+					OPT_MODEL="${1}"
+				fi
+			;;
+
 			-s|--sudo)
 				_set_sudo_func
 			;;
@@ -619,6 +744,12 @@ _parse_args()
 
 			-v|--verbosity)
 				shift
+				if [ -z "${1}" ]
+				then
+					_log "error" "\`--verbosity\` requires an argument. EXIT."
+					exit 2
+				fi
+
 				if [ ${1} -lt 0 ]
 				then
 					_log "error" "\`--verbosity\`: Value must be >= 0. EXIT."
@@ -656,12 +787,11 @@ _parse_args()
 _loop_over_nodes()
 {
 	_log "log" "Loop over nodes '${OPT_NODES}'."
-	for node_file in ${OPT_NODES}
+	for node in ${OPT_NODES}
 	do
-		node="${node_file}"
-		node_file="${NODES_DIR}/${node_file}"
 		_log "log" "Next device in list: '${node}'."
 
+		node_file="${NODES_DIR}/${node}"
 		_set_node_config
 
 		_ping_router
@@ -670,7 +800,6 @@ _loop_over_nodes()
 			_log "info" "*** ${node}: Network status: OK"
 
 			_flash
-
 		else
 			_log "error" "*** ${node}: Network status: FAILED (Not responsing)"
 			_log "log" "*** ${node}: Flashing skipped."
@@ -693,9 +822,36 @@ _main()
 	_check_requirements
 	_parse_args ${*}
 
+	# Special operation mode
+	# Do not loop over nodes, just start tftp-server for ${model}
+	# given as command line argument
+	if [ ${FAILSAFE} ]
+	then
+		if [ ${OPT_MODEL} ]
+		then
+			_flash_over_failsafe
+		else
+			_log "error" "\`--model\` no specified. Abort."
+			exit 2
+		fi
+	fi
+
+	if [ ! ${OPT_FROM} ]
+	then
+		_log "error" "At least \`--from\` has to be specified!. Abort."
+		exit 1
+	fi
+
+	if [ ${OPT_FROM} -a ! ${OPT_TO} ]
+	then
+		_log "error" "Not sure what to do. \`--to\` is missing. Abort."
+		exit 1
+	fi
+
 ########################################################################
 	# Which nodes to flash/config
 	# If nodes are _NOT_ given or specified, use all node files in NODES_DIR
+	{
 	if [ -z "${OPT_NODES}" ]
 	then
 		OPT_NODES="$( ls "${NODES_DIR}" )"
@@ -720,6 +876,7 @@ _main()
 
 	unset node
 	unset node_file
+	}
 ########################################################################
 	if [ ${NETWORK_MANAGER} ]; then
 		__log "log" ""
@@ -734,6 +891,9 @@ _main()
 		__log "log" ""
 		${SUDO_FUNC} service network-manager start
 	fi
+
+	_log "info" "Exit"
+	exit 0
 }
 ########################################################################
 ## DEFAULT SETTINGS ##
@@ -742,8 +902,7 @@ FIRMWARE_DIR="${__basedir}/firmware-images"
 NODES_DIR="${__basedir}/nodes"
 
 _main ${*}
-_log "info" "Exit"
-exit 0
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -759,6 +918,9 @@ exit 0
 ## 2.1.0
 # * New state
 #	- openwrt-custom / openwrt-customized
+## 2.2.0
+# * Flash via tftp
+#	=> New state failsafe
 
 
 # Just for the record
