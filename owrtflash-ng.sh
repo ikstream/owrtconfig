@@ -457,39 +457,39 @@ _flash_over_failsafe()
 
 	TFTP_DIR="/srv/tftp"
 	_log "info" "${state}: Copying '${firmware}' to '${TFTP_DIR}/'"
-	${SUDO_FUNC} \
-		cp \
-			"${firmware}" \
-			"${TFTP_DIR}/"
+	{
+		${SUDO_FUNC} \
+		cp "${firmware}" "${TFTP_DIR}/"
+	}
 
 	# TODO: Make it more generic
 	_log "info" "${state}: Starting monitor log..."
 	{
-	nohup \
-		${SUDO_FUNC} \
-		terminator \
-			--geometry=900x200-0-0 \
-			--execute \
-				"${__basedir}"/helper_functions/read_syslog.sh \
+		nohup \
+			${SUDO_FUNC} \
+			terminator \
+				--geometry=900x200-0-0 \
+				--execute \
+					"${__basedir}"/helper_functions/read_syslog.sh \
 		>/dev/null \
 		2>&1 \
 		&
-
-# journalctl --no-pager --follow since="$( date "+%F %T" )" /usr/sbin/in.tftpd \
-# Dafuq: List log for executable does not work
-# Cheating with grep...
 	}
+	# journalctl --no-pager --follow since="$( date "+%F %T" )" /usr/sbin/in.tftpd \
+	# Dafuq: List log for executable does not work
+	# Cheating with grep...
+
 
 	_log "log" "${state}: Starting TFTPd..."
 	{
-	${SUDO_FUNC} \
-	/usr/sbin/in.tftpd \
-		--listen \
-	 	--user tftp \
-		--address 0.0.0.0:69 \
-		--secure \
-		-v -v -v \
-		"${TFTP_DIR}"
+		${SUDO_FUNC} \
+		/usr/sbin/in.tftpd \
+			--listen \
+			--user tftp \
+			--address 0.0.0.0:69 \
+			--secure \
+			-v -v -v \
+			"${TFTP_DIR}"
 	}
 	_TFTP_PID=${!}
 
@@ -516,9 +516,10 @@ _flash_over_failsafe()
 	}
 
 	_log "info" "${state}: Cleanup '${TFTP_DIR}/'"
-	${SUDO_FUNC} \
-	rm \
-		"${TFTP_DIR}/$( basename ${firmware} )"
+	{
+		${SUDO_FUNC} \
+		rm "${TFTP_DIR}/$( basename ${firmware} )"
+	}
 
 	_reset_network
 
