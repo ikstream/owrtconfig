@@ -1,11 +1,11 @@
 DESCRIPTION
 ===========
 
-Owrtconfig is a script that configure multiple Openwrt routers all connected to
+Owrtconfig is a script that configure multiple LEDE routers all connected to
 the same switch.
 It is used at the Wireless Battle Mesh events  (http://battlemesh.org) in order to
-configure multiple foneras running Openwrt, and freshly flashed with the
-default firmware (all default openwrt devices default IP 192.168.1.1).
+configure multiple foneras running LEDE, and freshly flashed with the
+default firmware (all default LEDE devices default IP 192.168.1.1).
 
 It loads a list of nodes (nodes.csv) and a list of commands to execute on each
 router (commands.sh), and it can also upload files (scp) by changing the ARP cache 

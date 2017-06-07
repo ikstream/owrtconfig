@@ -154,7 +154,7 @@ _get_state()
 {
 	:
 	# TODO
-	# Using nmap to decide node is in factory or openwrt mode
+	# Using nmap to decide node is in factory or lede mode
 	# Can not get model version exactly so far...
 
 #	LEASE_FILE="/var/lib/dhcp/dhclient.leases"
@@ -204,10 +204,10 @@ _set_factory_defaults()
 	fi
 }
 
-_set_openwrt_defaults()
+_set_lede_defaults()
 {
-	_log "info" "*** ${node}: Load OpenWrt defaults."
-	. "${__basedir}/defaults/openwrt"
+	_log "info" "*** ${node}: Load LEDE defaults."
+	. "${__basedir}/defaults/lede"
 }
 
 _set_custom_defaults()
@@ -240,14 +240,14 @@ _set_firmware_image()
 		factory)
 			case ${OPT_TO} in
 				factory)  firmware="${FIRMWARE_DIR}"/factory/${model}.bin             ;;
-				openwrt)  firmware="${FIRMWARE_DIR}"/openwrt/${model}-factory.bin     ;;
+				lede)  firmware="${FIRMWARE_DIR}"/lede/${model}-factory.bin     ;;
 				custom)   . "${node_file}"                                            ;;
 			esac
 		;;
-		openwrt|custom)
+		lede|custom)
 			case ${OPT_TO} in
 				factory) firmware="${FIRMWARE_DIR}"/factory/${model}.bin.stripped     ;;
-				openwrt) firmware="${FIRMWARE_DIR}"/openwrt/${model}-sysupgrade.bin   ;;
+				lede) firmware="${FIRMWARE_DIR}"/lede/${model}-sysupgrade.bin   ;;
 				custom)  . "${node_file}"                                             ;;
 			esac
 		;;
@@ -259,7 +259,7 @@ _set_firmware_image()
 ########################################################################
 ########################################################################
 # TODO
-_get_openwrt_firmware_file_name()
+_get_lede_firmware_file_name()
 {
 	:
 	# TODO
@@ -270,7 +270,7 @@ _get_openwrt_firmware_file_name()
 #	| grep -E "${model}.*factory" | awk '{ print $2 }'
 }
 
-_get_openwrt_firmware_file_md5sum()
+_get_lede_firmware_file_md5sum()
 {
 	:
 	# TODO
@@ -281,11 +281,11 @@ _get_openwrt_firmware_file_md5sum()
 #	| grep -E "${model}.*factory" | awk '{ print $1 }'
 }
 
-_download_openwrt()
+_download_lede()
 {
 	:
 	# TODO
-#	firmware_file_name="$( _get_openwrt_firmware_file_name )"
+#	firmware_file_name="$( _get_lede_firmware_file_name )"
 #	# Cleanup file name
 #	# Removes "*" from var
 #	firmware_file_name="${firmware_file_name#"*"}"
@@ -427,19 +427,19 @@ _flash_over_factory()
 	_flash_over_factory_via_http
 }
 
-_flash_over_openwrt()
+_flash_over_lede()
 {
-	_set_openwrt_defaults
+	_set_lede_defaults
 	case ${OPT_FROM} in
-		openwrt) : ;;
+		lede) : ;;
 		custom)  . "${node_file}" ;;
 	esac
-	_flash_over_openwrt_via_${protocol}
+	_flash_over_lede_via_${protocol}
 }
 
 _flash_over_custom()
 {
-	_flash_over_openwrt
+	_flash_over_lede
 }
 
 _flash_over_failsafe()
@@ -541,7 +541,7 @@ _flash_over_factory_via_http()
 	:
 }
 
-_flash_over_openwrt_via_telnet()
+_flash_over_lede_via_telnet()
 {
 	# TODO
 	# Install nohup.sh via telnet
@@ -552,7 +552,7 @@ _flash_over_openwrt_via_telnet()
 #	nc -l 1234 < ${firmware} &
 
 	# Start telnet session
-#	${__basedir}/helper_functions/flash_over_openwrt_via_telnet.exp ${router_ip} ${client_ip}
+#	${__basedir}/helper_functions/flash_over_lede_via_telnet.exp ${router_ip} ${client_ip}
 	# FIXME
 	# For a reason the expect script does not work properly and fails on
 	# the nohup call for sysupgrade... to sad I have to go the other way
@@ -562,11 +562,11 @@ _flash_over_openwrt_via_telnet()
 	####### Workaround ########
 	###########################
 	_set_password_via_telnet
-	_flash_over_openwrt_via_ssh
+	_flash_over_lede_via_ssh
 	############################
 }
 
-_flash_over_openwrt_via_ssh()
+_flash_over_lede_via_ssh()
 {
 	_log "log" "*** ${node}: Trying to flash with '${firmware}'..."
 
@@ -597,11 +597,11 @@ _flash_over_openwrt_via_ssh()
 
 _flash_over_custom_via_telnet()
 {
-	_flash_over_openwrt_via_telnet
+	_flash_over_lede_via_telnet
 }
 _flash_over_custom_via_ssh()
 {
-	_flash_over_openwrt_via_ssh
+	_flash_over_lede_via_ssh
 }
 ########################################################################
 _version()
@@ -620,8 +620,8 @@ Usage: $ME OPTIONS
 Required:
     --nodes node1,node2,.. |    comma seperated list of node-names,
             /path/to/node/dir   or a directory containing all node-files
-    --from STATE                factory | openwrt | custom
-    --to   STATE                factory | openwrt | custom
+    --from STATE                factory | lede | custom
+    --to   STATE                factory | lede | custom
     --interface                 network interface to use
 
 Usefull:
@@ -694,7 +694,7 @@ _parse_args()
 				shift
 				case ${1} in
 					factory)  : ;;
-					openwrt)  : ;;
+					lede)  : ;;
 					custom)   : ;;
 					failsafe) FAILSAFE=1 ;;
 					*)
@@ -712,7 +712,7 @@ _parse_args()
 				shift
 				case ${1} in
 					factory) : ;;
-					openwrt) : ;;
+					lede) : ;;
 					custom)  : ;;
 					*)
 						_log "error" "\`--to\`: Unknown state '${1}'. EXIT."
@@ -932,7 +932,7 @@ _main ${*}
 # WORKING ON
 ## 2.1.0
 # * New state
-#	- openwrt-custom / openwrt-customized
+#	- lede-custom / lede-customized
 ## 2.2.0
 # * Flash via tftp
 #	=> New state failsafe
@@ -947,6 +947,6 @@ _main ${*}
 ########################################################################
 # NOTES
 ## EXAMPLE USAGE
-# ./owrtconfig-ng.sh --nodes 0142 --from factory --to openwrt --sudo
-# ./owrtconfig-ng.sh --nodes 0142 --from openwrt --to openwrt --sudo
-# ./owrtconfig-ng.sh --nodes 0142 --from openwrt --to factory --sudo
+# ./owrtconfig-ng.sh --nodes 0142 --from factory --to lede --sudo
+# ./owrtconfig-ng.sh --nodes 0142 --from lede --to lede --sudo
+# ./owrtconfig-ng.sh --nodes 0142 --from lede --to factory --sudo
