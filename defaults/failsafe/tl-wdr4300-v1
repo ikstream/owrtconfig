@@ -1,0 +1,9 @@
+#!/bin/sh
+# failsafe defaults: TL-WDR4300
+
+. "${__basedir}/defaults/failsafe/tl"
+
+firmware="${FIRMWARE_DIR}/failsafe/wdr4300v1_tp_recovery.bin"
+
+# https://wiki.openwrt.org/toh/tp-link/tl-wdr4300#flashing_via_tftp
+
