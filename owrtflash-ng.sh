@@ -6,6 +6,8 @@
 __basename="$( basename "${0}" )"
 __basedir="$( dirname "$( readlink -f "${0}" )" )"
 
+TFTP_DIR="/srv/tftp"
+
 _set_ME()
 {
 	ME="${__basename}"
@@ -454,7 +456,6 @@ _flash_over_failsafe()
 	_reset_network
 	_set_client_ip
 
-	TFTP_DIR="/srv/tftp"
 	_log "info" "${state}: Copying '${firmware}' to '${TFTP_DIR}/'"
 	{
 		if [ ! -d ${TFTP_DIR} ]
@@ -781,6 +782,18 @@ _parse_args()
 					INTERFACE="${1}"
 				fi
 			;;
+
+			--tftp-dir)
+				shift
+				if [ -z "${1}" ]
+				then
+					_log "erro" "\`--tftp-dir\`: requires an argument. EXIT."
+					exit 2
+				else
+					TFTP_DIR="${1}"
+				fi
+			;;
+
 
 
 			#Unknown Arguments
