@@ -59,8 +59,7 @@ _set_sudo_func()
 
 _check_requirements()
 {
-	CMDS="arp
-arping
+	CMDS="arping
 curl
 ip
 ping
@@ -73,7 +72,6 @@ grep
 sed
 awk
 sudo
-in.tftpd
 nohup
 terminator
 journalctl"
@@ -102,16 +100,16 @@ journalctl"
 _reset_network()
 {
 	_log "info" "Resetting network"
-	${SUDO_FUNC} ip neighbour flush dev eth0         >/dev/null 2>/dev/null
-	${SUDO_FUNC} ip route flush table main dev eth0  >/dev/null 2>/dev/null
-	${SUDO_FUNC} ip addr flush dev eth0              >/dev/null 2>/dev/null
+	${SUDO_FUNC} ip neighbour flush dev ${INTERFACE}         >/dev/null 2>/dev/null
+	${SUDO_FUNC} ip route flush table main dev ${INTERFACE}  >/dev/null 2>/dev/null
+	${SUDO_FUNC} ip addr flush dev ${INTERFACE}              >/dev/null 2>/dev/null
 }
 #####################
 _set_client_ip()
 {
 	_log "info" "*** ${node}: Setting client IP to ${client_ip}."
-	${SUDO_FUNC} ip link set eth0 up                   >/dev/null 2>/dev/null
-	${SUDO_FUNC} ip addr add ${client_ip}/24 dev eth0  >/dev/null 2>/dev/null
+	${SUDO_FUNC} ip link set ${INTERFACE} up                   >/dev/null 2>/dev/null
+	${SUDO_FUNC} ip addr add ${client_ip}/24 dev ${INTERFACE}  >/dev/null 2>/dev/null
 	# TODO: Specify subnet, we may not allways want /24
 }
 ############################
@@ -119,7 +117,7 @@ _set_router_arp_entry()
 {
 	_log "info" "*** ${node}: Setting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -s ${router_ip} ${macaddr}         >/dev/null 2>/dev/null
-	${SUDO_FUNC} ip neighbor add ${router_ip} lladdr ${macaddr} dev eth0 \
+	${SUDO_FUNC} ip neighbor add ${router_ip} lladdr ${macaddr} dev ${INTERFACE} \
 		>/dev/null 2>/dev/null
 }
 ##############################
@@ -127,7 +125,7 @@ _reset_router_arp_entry()
 {
 	_log "info" "*** ${node}: Deleting arp table entry for ${router_ip} to ${macaddr}."
 #	${SUDO_FUNC} arp -d ${router_ip}
-	${SUDO_FUNC} ip neighbor del ${router_ip} dev eth0 \
+	${SUDO_FUNC} ip neighbor del ${router_ip} dev ${INTERFACE} \
 		>/dev/null 2>/dev/null
 }
 ###################
@@ -143,6 +141,7 @@ _ping_router()
 	${SUDO_FUNC} arping \
 		-q \
 		-c 1 \
+		-I ${INTERFACE} \
 		${router_ip}
 }
 #########################################################################
@@ -618,11 +617,12 @@ _usage()
 	_version
 	cat <<__END_OF_USAGE
 Usage: $ME OPTIONS
-Requiered:
+Required:
     --nodes node1,node2,.. |    comma seperated list of node-names,
             /path/to/node/dir   or a directory containing all node-files
     --from STATE                factory | openwrt | custom
     --to   STATE                factory | openwrt | custom
+    --interface                 network interface to use
 
 Usefull:
     --sudo                      use sudo (if not running as root)
@@ -766,10 +766,24 @@ _parse_args()
 				OPT_PING_TEST=1
 			;;
 
+			-I|--interface)
+				shift
+				if [ -z "${1}" ]
+				then
+					_log "error" "\`--interface\`: requires an network interface. EXIT."
+					exit 2
+				else
+					INTERFACE="${1}"
+				fi
+			;;
+
+
+			#Unknown Arguments
 			*)
 				_log "error" "Unexpected argument '${1}'"
 				exit 1
 			;;
+
 		esac # case $1 in
 
 		# Remaining arguments
