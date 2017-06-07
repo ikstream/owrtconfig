@@ -457,6 +457,11 @@ _flash_over_failsafe()
 	TFTP_DIR="/srv/tftp"
 	_log "info" "${state}: Copying '${firmware}' to '${TFTP_DIR}/'"
 	{
+		if [ ! -d ${TFTP_DIR} ]
+		then
+			${SUDO_FUNC} \
+			mkdir -p ${TFTP_DIR}
+		fi
 		${SUDO_FUNC} \
 		cp "${firmware}" "${TFTP_DIR}/"
 	}
