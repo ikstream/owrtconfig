@@ -622,6 +622,7 @@ Required:
             /path/to/node/dir   or a directory containing all node-files
     --from STATE                factory | openwrt | custom
     --to   STATE                factory | openwrt | custom
+    --interface                 network interface to use
 
 Usefull:
     --sudo                      use sudo (if not running as root)
