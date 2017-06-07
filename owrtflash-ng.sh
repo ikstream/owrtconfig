@@ -482,13 +482,12 @@ _flash_over_failsafe()
 	_log "log" "${state}: Starting TFTPd..."
 	{
 		${SUDO_FUNC} \
-		/usr/sbin/in.tftpd \
-			--listen \
-			--user tftp \
-			--address 0.0.0.0:69 \
-			--secure \
-			-v -v -v \
-			"${TFTP_DIR}"
+		dnsmasq \
+			--keep-in-foreground \
+			--no-daemon \
+			--enable-tftp="${INTERFACE}" \
+			--tftp-root="${TFTP_DIR}" \
+			--tftp-no-blocksize
 	}
 	_TFTP_PID=${!}
 
