@@ -1,4 +1,10 @@
 #!/bin/sh
 # Generic default settings mainly for `../owrtflash-ng.sh`
 
+#default subnet mask
+SUBNET_MASK='24'
+
+#default tftp server dir
+TFTP_DIR="/srv/tftp"
+
 user_agent="Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:12.0) Gecko/20100101 Firefox/12.0"
