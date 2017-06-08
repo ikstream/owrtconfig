@@ -6,8 +6,6 @@
 __basename="$( basename "${0}" )"
 __basedir="$( dirname "$( readlink -f "${0}" )" )"
 
-TFTP_DIR="/srv/tftp"
-
 _set_ME()
 {
 	ME="${__basename}"
