@@ -1,5 +1,5 @@
 #!/bin/sh
 # factory defaults: TL-WR841N-v8
 
-. "${__basedir}"/defaults/factory/tl-wr841
+. "${__basedir}/defaults/factory/tl-wr841"
 
