@@ -787,7 +787,7 @@ _parse_args()
 				shift
 				if [ -z "${1}" ]
 				then
-					_log "erro" "\`--tftp-dir\`: requires an argument. EXIT."
+					_log "error" "\`--tftp-dir\`: requires an argument. EXIT."
 					exit 2
 				else
 					TFTP_DIR="${1}"
