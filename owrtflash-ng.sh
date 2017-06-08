@@ -111,8 +111,7 @@ _set_client_ip()
 {
 	_log "info" "*** ${node}: Setting client IP to ${client_ip}."
 	${SUDO_FUNC} ip link set ${INTERFACE} up                   >/dev/null 2>/dev/null
-	${SUDO_FUNC} ip addr add ${client_ip}/24 dev ${INTERFACE}  >/dev/null 2>/dev/null
-	# TODO: Specify subnet, we may not allways want /24
+	${SUDO_FUNC} ip addr add ${client_ip}/${SUBNET_MASK} dev ${INTERFACE}  >/dev/null 2>/dev/null
 }
 ############################
 _set_router_arp_entry()
@@ -643,6 +642,8 @@ Optional:
     --ping-test                 just ping all nodes, do not flash or configure
                                 (not implemented)
 
+   --subnet			define subnetmask. defaul is set to 24
+
 __END_OF_USAGE
 }
 #######
@@ -783,6 +784,7 @@ _parse_args()
 				fi
 			;;
 
+			#TFTP_DIR
 			--tftp-dir)
 				shift
 				if [ -z "${1}" ]
@@ -791,6 +793,18 @@ _parse_args()
 					exit 2
 				else
 					TFTP_DIR="${1}"
+				fi
+			;;
+
+			#SUBNET_MASK
+			--subnet)
+				shift
+				if [ -z "${1}" ]
+				then
+					_log "error" "\`--subnet\`: requires an argument. EXIT."
+					exit 2
+				else
+					SUBNET_MASK="${1}"
 				fi
 			;;
 
